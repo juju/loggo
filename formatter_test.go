@@ -5,7 +5,7 @@ import (
 
 	gc "launchpad.net/gocheck"
 
-	"github.com/loggo/loggo"
+	"github.com/juju/loggo"
 )
 
 type formatterSuite struct{}

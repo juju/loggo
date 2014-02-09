@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/loggo/loggo"
+	"github.com/juju/loggo"
 )
 
 var logger = loggo.GetLogger("main")

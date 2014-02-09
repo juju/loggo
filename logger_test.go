@@ -7,7 +7,7 @@ import (
 
 	gc "launchpad.net/gocheck"
 
-	"github.com/loggo/loggo"
+	"github.com/juju/loggo"
 )
 
 func Test(t *testing.T) {
