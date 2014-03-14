@@ -252,6 +252,9 @@ var configureLoggersTests = []struct {
 	spec: "<root>=DEBUG",
 	info: "<root>=DEBUG",
 }, {
+	spec: "TRACE",
+	info: "<root>=TRACE",
+}, {
 	spec: "test.module=debug",
 	info: "<root>=WARNING;test.module=DEBUG",
 }, {
