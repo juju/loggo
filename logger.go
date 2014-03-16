@@ -175,11 +175,19 @@ func LoggerInfo() string {
 // <modulename>=<level>.  White space outside of module names and levels is
 // ignored.  The root module is specified with the name "<root>".
 //
+// As a special case, a log level may be specified on its own.
+// This is equivalent to specifying the level of the root module,
+// so "DEBUG" is equivalent to `<root>=DEBUG`
+//
 // An example specification:
 //	`<root>=ERROR; foo.bar=WARNING`
 func ParseConfigurationString(specification string) (map[string]Level, error) {
-	values := strings.FieldsFunc(specification, func(r rune) bool { return r == ';' || r == ':' })
 	levels := make(map[string]Level)
+	if level, ok := ParseLevel(specification); ok {
+		levels[""] = level
+		return levels, nil
+	}
+	values := strings.FieldsFunc(specification, func(r rune) bool { return r == ';' || r == ':' })
 	for _, value := range values {
 		s := strings.SplitN(value, "=", 2)
 		if len(s) < 2 {
