@@ -2,6 +2,7 @@ package loggo
 
 import (
 	"path"
+	"sync"
 	"time"
 )
 
@@ -18,19 +19,30 @@ type TestLogValues struct {
 // TestWriter is a useful Writer for testing purposes.  Each component of the
 // logging message is stored in the Log array.
 type TestWriter struct {
-	Log []TestLogValues
+	mu  sync.Mutex
+	log []TestLogValues
 }
 
 // Write saves the params as members in the TestLogValues struct appended to the Log array.
 func (writer *TestWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
-	if writer.Log == nil {
-		writer.Log = []TestLogValues{}
-	}
-	writer.Log = append(writer.Log,
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	writer.log = append(writer.log,
 		TestLogValues{level, module, path.Base(filename), line, timestamp, message})
 }
 
 // Clear removes any saved log messages.
 func (writer *TestWriter) Clear() {
-	writer.Log = []TestLogValues{}
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	writer.log = nil
+}
+
+// Log returns a copy of the current logged values.
+func (writer *TestWriter) Log() []TestLogValues {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	v := make([]TestLogValues, len(writer.log))
+	copy(v, writer.log)
+	return v
 }
