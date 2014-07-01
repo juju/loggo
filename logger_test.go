@@ -340,20 +340,21 @@ func (s *logwriterSuite) TearDownTest(c *gc.C) {
 
 func (s *logwriterSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
 	s.logger.Logf(loggo.UNSPECIFIED, "message")
-	c.Assert(s.writer.Log, gc.HasLen, 0)
+	c.Assert(s.writer.Log(), gc.HasLen, 0)
 
 	s.logger.Logf(loggo.Level(42), "message")
-	c.Assert(s.writer.Log, gc.HasLen, 0)
+	c.Assert(s.writer.Log(), gc.HasLen, 0)
 
 	s.logger.Logf(loggo.CRITICAL+loggo.Level(1), "message")
-	c.Assert(s.writer.Log, gc.HasLen, 0)
+	c.Assert(s.writer.Log(), gc.HasLen, 0)
 }
 
 func (s *logwriterSuite) TestMessageFormatting(c *gc.C) {
 	s.logger.Logf(loggo.INFO, "some %s included", "formatting")
-	c.Assert(s.writer.Log, gc.HasLen, 1)
-	c.Assert(s.writer.Log[0].Message, gc.Equals, "some formatting included")
-	c.Assert(s.writer.Log[0].Level, gc.Equals, loggo.INFO)
+	log := s.writer.Log()
+	c.Assert(log, gc.HasLen, 1)
+	c.Assert(log[0].Message, gc.Equals, "some formatting included")
+	c.Assert(log[0].Level, gc.Equals, loggo.INFO)
 }
 
 func (s *logwriterSuite) BenchmarkLoggingNoWriters(c *gc.C) {

@@ -115,10 +115,11 @@ func (s *writerSuite) TestWritingCapturesFileAndLineAndModule(c *gc.C) {
 	// WARNING: test checks the line number of the above logger lines, this
 	// will mean that if the above line moves, the test will fail unless
 	// updated.
-	c.Assert(writer.Log, gc.HasLen, 1)
-	c.Assert(writer.Log[0].Filename, gc.Equals, "writer_test.go")
-	c.Assert(writer.Log[0].Line, gc.Equals, 113)
-	c.Assert(writer.Log[0].Module, gc.Equals, "test.writer")
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 1)
+	c.Assert(log[0].Filename, gc.Equals, "writer_test.go")
+	c.Assert(log[0].Line, gc.Equals, 113)
+	c.Assert(log[0].Module, gc.Equals, "test.writer")
 }
 
 func (s *writerSuite) TestWritingLimitWarning(c *gc.C) {
@@ -134,18 +135,19 @@ func (s *writerSuite) TestWritingLimitWarning(c *gc.C) {
 	s.logger.Tracef("Trace the function")
 	end := time.Now()
 
-	c.Assert(writer.Log, gc.HasLen, 3)
-	c.Assert(writer.Log[0].Level, gc.Equals, loggo.CRITICAL)
-	c.Assert(writer.Log[0].Message, gc.Equals, "Something critical.")
-	c.Assert(writer.Log[0].Timestamp, Between(start, end))
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 3)
+	c.Assert(log[0].Level, gc.Equals, loggo.CRITICAL)
+	c.Assert(log[0].Message, gc.Equals, "Something critical.")
+	c.Assert(log[0].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[1].Level, gc.Equals, loggo.ERROR)
-	c.Assert(writer.Log[1].Message, gc.Equals, "An error.")
-	c.Assert(writer.Log[1].Timestamp, Between(start, end))
+	c.Assert(log[1].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[1].Message, gc.Equals, "An error.")
+	c.Assert(log[1].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[2].Level, gc.Equals, loggo.WARNING)
-	c.Assert(writer.Log[2].Message, gc.Equals, "A warning message")
-	c.Assert(writer.Log[2].Timestamp, Between(start, end))
+	c.Assert(log[2].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[2].Message, gc.Equals, "A warning message")
+	c.Assert(log[2].Timestamp, Between(start, end))
 }
 
 func (s *writerSuite) TestWritingLimitTrace(c *gc.C) {
@@ -161,26 +163,27 @@ func (s *writerSuite) TestWritingLimitTrace(c *gc.C) {
 	s.logger.Tracef("Trace the function")
 	end := time.Now()
 
-	c.Assert(writer.Log, gc.HasLen, 5)
-	c.Assert(writer.Log[0].Level, gc.Equals, loggo.CRITICAL)
-	c.Assert(writer.Log[0].Message, gc.Equals, "Something critical.")
-	c.Assert(writer.Log[0].Timestamp, Between(start, end))
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 5)
+	c.Assert(log[0].Level, gc.Equals, loggo.CRITICAL)
+	c.Assert(log[0].Message, gc.Equals, "Something critical.")
+	c.Assert(log[0].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[1].Level, gc.Equals, loggo.ERROR)
-	c.Assert(writer.Log[1].Message, gc.Equals, "An error.")
-	c.Assert(writer.Log[1].Timestamp, Between(start, end))
+	c.Assert(log[1].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[1].Message, gc.Equals, "An error.")
+	c.Assert(log[1].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[2].Level, gc.Equals, loggo.WARNING)
-	c.Assert(writer.Log[2].Message, gc.Equals, "A warning message")
-	c.Assert(writer.Log[2].Timestamp, Between(start, end))
+	c.Assert(log[2].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[2].Message, gc.Equals, "A warning message")
+	c.Assert(log[2].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[3].Level, gc.Equals, loggo.INFO)
-	c.Assert(writer.Log[3].Message, gc.Equals, "Info message")
-	c.Assert(writer.Log[3].Timestamp, Between(start, end))
+	c.Assert(log[3].Level, gc.Equals, loggo.INFO)
+	c.Assert(log[3].Message, gc.Equals, "Info message")
+	c.Assert(log[3].Timestamp, Between(start, end))
 
-	c.Assert(writer.Log[4].Level, gc.Equals, loggo.TRACE)
-	c.Assert(writer.Log[4].Message, gc.Equals, "Trace the function")
-	c.Assert(writer.Log[4].Timestamp, Between(start, end))
+	c.Assert(log[4].Level, gc.Equals, loggo.TRACE)
+	c.Assert(log[4].Message, gc.Equals, "Trace the function")
+	c.Assert(log[4].Timestamp, Between(start, end))
 }
 
 func (s *writerSuite) TestMultipleWriters(c *gc.C) {
@@ -202,10 +205,10 @@ func (s *writerSuite) TestMultipleWriters(c *gc.C) {
 	s.logger.Infof("Info message")
 	s.logger.Tracef("Trace the function")
 
-	c.Assert(errorWriter.Log, gc.HasLen, 1)
-	c.Assert(warningWriter.Log, gc.HasLen, 2)
-	c.Assert(infoWriter.Log, gc.HasLen, 3)
-	c.Assert(traceWriter.Log, gc.HasLen, 4)
+	c.Assert(errorWriter.Log(), gc.HasLen, 1)
+	c.Assert(warningWriter.Log(), gc.HasLen, 2)
+	c.Assert(infoWriter.Log(), gc.HasLen, 3)
+	c.Assert(traceWriter.Log(), gc.HasLen, 4)
 }
 
 func Between(start, end time.Time) gc.Checker {
