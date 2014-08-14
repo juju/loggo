@@ -1,6 +1,8 @@
 loggo - hierarchical loggers for Go
 ===================================
 
+[![GoDoc](https://godoc.org/github.com/juju/loggo?status.svg)](https://godoc.org/github.com/juju/loggo)
+
 This package provides an alternative to the standard library log package.
 
 The actual logging functions never return errors.  If you are logging
