@@ -337,6 +337,17 @@ func (logger Logger) SetLogLevel(level Level) {
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
 func (logger Logger) Logf(level Level, message string, args ...interface{}) {
+	logger.LogCallf(2, level, message, args...)
+}
+
+// LogCallf logs a printf-formatted message at the given level.
+// The location of the call is indicated by the calldepth argument.
+// A calldepth of 1 means the function that called this function.
+// A message will be discarded if level is less than the
+// the effective log level of the logger.
+// Note that the writers may also filter out messages that
+// are less than their registered minimum severity level.
+func (logger Logger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
 	if logger.getModule().getEffectiveLogLevel() > level ||
 		!WillWrite(level) ||
 		level < TRACE ||
@@ -347,7 +358,7 @@ func (logger Logger) Logf(level Level, message string, args ...interface{}) {
 	now := time.Now() // get this early.
 	// Param to Caller is the call depth.  Since this method is called from
 	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := runtime.Caller(2)
+	_, file, line, ok := runtime.Caller(calldepth + 1)
 	if !ok {
 		file = "???"
 		line = 0
