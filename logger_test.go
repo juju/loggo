@@ -1,18 +1,16 @@
+// Copyright 2014 Canonical Ltd.
+// Licensed under the LGPLv3, see LICENCE file for details.
+
 package loggo_test
 
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 
 	gc "gopkg.in/check.v1"
 
 	"github.com/juju/loggo"
 )
-
-func Test(t *testing.T) {
-	gc.TestingT(t)
-}
 
 type loggerSuite struct{}
 
@@ -236,6 +234,74 @@ func (*loggerSuite) TestLevelStringValue(c *gc.C) {
 	for level, str := range levelStringValueTests {
 		c.Assert(level.String(), gc.Equals, str)
 	}
+}
+
+type stack_error struct {
+	message string
+	stack   []string
+}
+
+func (s *stack_error) Error() string {
+	return s.message
+}
+
+func (s *stack_error) StackTrace() []string {
+	return s.stack
+}
+
+func checkLastMessage(c *gc.C, writer *loggo.TestWriter, expected string) {
+	log := writer.Log()
+	writer.Clear()
+	obtained := log[len(log)-1].Message
+	c.Check(obtained, gc.Equals, expected)
+}
+
+func (*loggerSuite) TestLoggingStrings(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	loggo.ReplaceDefaultWriter(writer)
+	logger := loggo.GetLogger("test")
+	logger.SetLogLevel(loggo.TRACE)
+
+	logger.Infof("simple")
+	checkLastMessage(c, writer, "simple")
+
+	logger.Infof("with args %d", 42)
+	checkLastMessage(c, writer, "with args 42")
+
+	logger.Infof("working 100%")
+	checkLastMessage(c, writer, "working 100%")
+
+	logger.Infof("missing %s")
+	checkLastMessage(c, writer, "missing %s")
+}
+
+func (*loggerSuite) TestLocationCapture(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	loggo.ReplaceDefaultWriter(writer)
+	logger := loggo.GetLogger("test")
+	logger.SetLogLevel(loggo.TRACE)
+
+	logger.Criticalf("critical message") //tag critical-location
+	logger.Errorf("error message")       //tag error-location
+	logger.Warningf("warning message")   //tag warning-location
+	logger.Infof("info message")         //tag info-location
+	logger.Debugf("debug message")       //tag debug-location
+	logger.Tracef("trace message")       //tag trace-location
+
+	log := writer.Log()
+	tags := []string{
+		"critical-location",
+		"error-location",
+		"warning-location",
+		"info-location",
+		"debug-location",
+		"trace-location",
+	}
+	c.Assert(log, gc.HasLen, len(tags))
+	for x := range tags {
+		assertLocation(c, log[x], tags[x])
+	}
+
 }
 
 var configureLoggersTests = []struct {
