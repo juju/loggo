@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"sort"
 	"strings"
@@ -378,6 +379,75 @@ func (logger Logger) Debugf(message string, args ...interface{}) {
 // Tracef logs the printf-formatted message at trace level.
 func (logger Logger) Tracef(message string, args ...interface{}) {
 	logger.Logf(TRACE, message, args...)
+}
+
+// Tracer defines an interace that is checked against the
+// errors passed in to the `*Stackf` methods.  If the error has an
+// `StackTrace` method, it will be called.
+type Tracer interface {
+	StackTrace() []string
+}
+
+func errorMessage(err error, message string, args ...interface{}) string {
+	formattedMessage := message
+	if len(args) > 0 {
+		formattedMessage = strings.TrimSpace(fmt.Sprintf(message, args...))
+	}
+	errorMessage := strings.TrimSpace(fmt.Sprint(err))
+	if formattedMessage == "" {
+		formattedMessage = errorMessage
+	} else {
+		formattedMessage += ": " + errorMessage
+	}
+	if stacker, ok := err.(Tracer); ok && !reflect.ValueOf(err).IsNil() {
+		stack := strings.Join(stacker.StackTrace(), "\n\t")
+		if stack != "" {
+			formattedMessage += "\n\t" + stack
+		}
+	}
+	return formattedMessage
+}
+
+// CriticalStackf logs the printf-formatted message at critical level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) CriticalStackf(err error, message string, args ...interface{}) {
+	logger.Logf(CRITICAL, errorMessage(err, message, args...))
+}
+
+// ErrorStackf logs the printf-formatted message at error level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) ErrorStackf(err error, message string, args ...interface{}) {
+	logger.Logf(ERROR, errorMessage(err, message, args...))
+}
+
+// WarningStackf logs the printf-formatted message at warning level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) WarningStackf(err error, message string, args ...interface{}) {
+	logger.Logf(WARNING, errorMessage(err, message, args...))
+}
+
+// InfoStackf logs the printf-formatted message at info level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) InfoStackf(err error, message string, args ...interface{}) {
+	logger.Logf(INFO, errorMessage(err, message, args...))
+}
+
+// DebugStackf logs the printf-formatted message at debug level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) DebugStackf(err error, message string, args ...interface{}) {
+	logger.Logf(DEBUG, errorMessage(err, message, args...))
+}
+
+// TraceStackf logs the printf-formatted message at trace level
+// along with the error's Error() string.  If the error supports
+// the `Tracer` interface, that error stack is also recorded.
+func (logger Logger) TraceStackf(err error, message string, args ...interface{}) {
+	logger.Logf(TRACE, errorMessage(err, message, args...))
 }
 
 // IsLevelEnabled returns whether debugging is enabled
