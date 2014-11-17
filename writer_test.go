@@ -1,3 +1,6 @@
+// Copyright 2014 Canonical Ltd.
+// Licensed under the LGPLv3, see LICENCE file for details.
+
 package loggo_test
 
 import (
@@ -110,15 +113,14 @@ func (s *writerSuite) TestWritingCapturesFileAndLineAndModule(c *gc.C) {
 	err := loggo.RegisterWriter("test", writer, loggo.INFO)
 	c.Assert(err, gc.IsNil)
 
-	s.logger.Infof("Info message")
+	s.logger.Infof("Info message") //tag capture
 
 	// WARNING: test checks the line number of the above logger lines, this
 	// will mean that if the above line moves, the test will fail unless
 	// updated.
 	log := writer.Log()
 	c.Assert(log, gc.HasLen, 1)
-	c.Assert(log[0].Filename, gc.Equals, "writer_test.go")
-	c.Assert(log[0].Line, gc.Equals, 113)
+	assertLocation(c, log[0], "capture")
 	c.Assert(log[0].Module, gc.Equals, "test.writer")
 }
 
@@ -236,10 +238,10 @@ func (checker *betweenChecker) Check(params []interface{}, names []string) (resu
 		return false, "obtained value type must be time.Time"
 	}
 	if when.Before(checker.start) {
-		return false, fmt.Sprintf("obtained value %#v type must before start value of %#v", when, checker.start)
+		return false, fmt.Sprintf("obtained time %q is before start time %q", when, checker.start)
 	}
 	if when.After(checker.end) {
-		return false, fmt.Sprintf("obtained value %#v type must after end value of %#v", when, checker.end)
+		return false, fmt.Sprintf("obtained time %q is after end time %q", when, checker.end)
 	}
 	return true, ""
 }
