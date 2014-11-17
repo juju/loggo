@@ -115,9 +115,6 @@ func (s *writerSuite) TestWritingCapturesFileAndLineAndModule(c *gc.C) {
 
 	s.logger.Infof("Info message") //tag capture
 
-	// WARNING: test checks the line number of the above logger lines, this
-	// will mean that if the above line moves, the test will fail unless
-	// updated.
 	log := writer.Log()
 	c.Assert(log, gc.HasLen, 1)
 	assertLocation(c, log[0], "capture")

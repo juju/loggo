@@ -24,6 +24,13 @@ func assertLocation(c *gc.C, msg loggo.TestLogValues, tag string) {
 	c.Assert(msg.Line, gc.Equals, loc.line)
 }
 
+// All this location stuff is to avoid having hard coded line numbers
+// in the tests.  Any line where as a test writer you want to capture the
+// file and line number, add a comment that has `//tag name` as the end of
+// the line.  The name must be unique across all the tests, and the test
+// will panic if it is not.  This name is then used to read the actual
+// file and line numbers.
+
 func location(tag string) Location {
 	loc, ok := tagToLocation[tag]
 	if !ok {
