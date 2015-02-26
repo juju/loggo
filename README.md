@@ -158,26 +158,6 @@ resolution in UTC.
 
 
 
-## type ErrorStacker
-``` go
-type ErrorStacker interface {
-    ErrorStack() string
-}
-```
-ErrorStacker defines an interace that is checked against the
-errors passed in to the `*Stackf` methods.  If the error has an
-`ErrorStack` method, it will be called.
-
-
-
-
-
-
-
-
-
-
-
 ## type Formatter
 ``` go
 type Formatter interface {
@@ -273,31 +253,11 @@ creating it and its parents if necessary.
 
 
 
-### func (Logger) CriticalStackf
-``` go
-func (logger Logger) CriticalStackf(err error, message string, args ...interface{})
-```
-CriticalStackf logs the printf-formatted message at critical level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
-
-
-
 ### func (Logger) Criticalf
 ``` go
 func (logger Logger) Criticalf(message string, args ...interface{})
 ```
 Criticalf logs the printf-formatted message at critical level.
-
-
-
-### func (Logger) DebugStackf
-``` go
-func (logger Logger) DebugStackf(err error, message string, args ...interface{})
-```
-DebugStackf logs the printf-formatted message at debug level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
 
 
 
@@ -323,31 +283,11 @@ parent.
 
 
 
-### func (Logger) ErrorStackf
-``` go
-func (logger Logger) ErrorStackf(err error, message string, args ...interface{})
-```
-ErrorStackf logs the printf-formatted message at error level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
-
-
-
 ### func (Logger) Errorf
 ``` go
 func (logger Logger) Errorf(message string, args ...interface{})
 ```
 Errorf logs the printf-formatted message at error level.
-
-
-
-### func (Logger) InfoStackf
-``` go
-func (logger Logger) InfoStackf(err error, message string, args ...interface{})
-```
-InfoStackf logs the printf-formatted message at info level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
 
 
 
@@ -466,31 +406,11 @@ actual messages logged.
 
 
 
-### func (Logger) TraceStackf
-``` go
-func (logger Logger) TraceStackf(err error, message string, args ...interface{})
-```
-TraceStackf logs the printf-formatted message at trace level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
-
-
-
 ### func (Logger) Tracef
 ``` go
 func (logger Logger) Tracef(message string, args ...interface{})
 ```
 Tracef logs the printf-formatted message at trace level.
-
-
-
-### func (Logger) WarningStackf
-``` go
-func (logger Logger) WarningStackf(err error, message string, args ...interface{})
-```
-WarningStackf logs the printf-formatted message at warning level
-along with the error's Error() string.  If the error supports
-the `ErrorStacker` interface, that error stack is also recorded.
 
 
 
