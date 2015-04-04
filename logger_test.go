@@ -4,6 +4,7 @@
 package loggo_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -273,6 +274,35 @@ func (*loggerSuite) TestLoggingStrings(c *gc.C) {
 
 	logger.Infof("missing %s")
 	checkLastMessage(c, writer, "missing %s")
+
+	logger.InfoStackf(nil, "")
+	checkLastMessage(c, writer, "<nil>")
+
+	logger.InfoStackf(nil, "some error")
+	checkLastMessage(c, writer, "some error: <nil>")
+
+	logger.InfoStackf(fmt.Errorf("an error"), "")
+	checkLastMessage(c, writer, "an error")
+
+	logger.InfoStackf(fmt.Errorf("an error"), "some error")
+	checkLastMessage(c, writer, "some error: an error")
+
+	emptyStack := &stack_error{"message", nil}
+	logger.InfoStackf(emptyStack, "some error")
+	checkLastMessage(c, writer, "some error: message")
+
+	withStack := &stack_error{"message", []string{
+		"filename:line", "filename2:line2"}}
+	logger.InfoStackf(withStack, "some error")
+	checkLastMessage(c, writer, `
+some error: message
+	filename:line
+	filename2:line2`[1:])
+
+	// edge case... typed nil error
+	var nilErr *stack_error
+	logger.InfoStackf(nilErr, "")
+	checkLastMessage(c, writer, "<nil>")
 }
 
 func (*loggerSuite) TestLocationCapture(c *gc.C) {
@@ -288,6 +318,13 @@ func (*loggerSuite) TestLocationCapture(c *gc.C) {
 	logger.Debugf("debug message")       //tag debug-location
 	logger.Tracef("trace message")       //tag trace-location
 
+	logger.CriticalStackf(nil, "critical message") //tag critical-stack-location
+	logger.ErrorStackf(nil, "error message")       //tag error-stack-location
+	logger.WarningStackf(nil, "warning message")   //tag warning-stack-location
+	logger.InfoStackf(nil, "info message")         //tag info-stack-location
+	logger.DebugStackf(nil, "debug message")       //tag debug-stack-location
+	logger.TraceStackf(nil, "trace message")       //tag trace-stack-location
+
 	log := writer.Log()
 	tags := []string{
 		"critical-location",
@@ -296,6 +333,12 @@ func (*loggerSuite) TestLocationCapture(c *gc.C) {
 		"info-location",
 		"debug-location",
 		"trace-location",
+		"critical-stack-location",
+		"error-stack-location",
+		"warning-stack-location",
+		"info-stack-location",
+		"debug-stack-location",
+		"trace-stack-location",
 	}
 	c.Assert(log, gc.HasLen, len(tags))
 	for x := range tags {
