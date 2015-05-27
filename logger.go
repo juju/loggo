@@ -127,7 +127,7 @@ func LoggerInfo() string {
 	sort.Strings(keys)
 	for _, name := range keys {
 		mod := modules[name]
-		severity := mod.level
+		severity := mod.level.get()
 		if severity == UNSPECIFIED {
 			continue
 		}
