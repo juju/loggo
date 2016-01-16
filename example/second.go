@@ -22,6 +22,9 @@ func SecondInfo(message string) {
 	second.Infof(message)
 }
 
+func SecondDebug(message string) {
+	second.Debugf(message)
+}
 func SecondTrace(message string) {
 	second.Tracef(message)
 }
