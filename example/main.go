@@ -30,6 +30,8 @@ func main() {
 	FirstInfo("first info")
 	FirstTrace("first trace")
 
+	loggo.ReplaceDefaultWriter(loggo.NewSimpleWriter(os.Stderr, &loggo.ColorFormatter{}))
+
 	SecondCritical("first critical")
 	SecondError("first error")
 	SecondWarning("first warning")
