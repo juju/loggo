@@ -117,7 +117,7 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 	if len(args) > 0 {
 		formattedMessage = fmt.Sprintf(message, args...)
 	}
-	writeToWriters(level, logger.impl.name, file, line, now, formattedMessage)
+	globalWriters.Write(level, logger.impl.name, file, line, now, formattedMessage)
 }
 
 // Criticalf logs the printf-formatted message at critical level.

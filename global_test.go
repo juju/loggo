@@ -162,14 +162,14 @@ func (*GlobalWritersSuite) TestRemoveDefaultWriter(c *gc.C) {
 
 	// Trying again fails.
 	defaultWriter, level, err = loggo.RemoveWriter("default")
-	c.Assert(err, gc.ErrorMatches, `Writer "default" is not registered`)
+	c.Assert(err, gc.ErrorMatches, `Writer "default" is not recognized`)
 	c.Assert(level, gc.Equals, loggo.UNSPECIFIED)
 	c.Assert(defaultWriter, gc.IsNil)
 }
 
 func (*GlobalWritersSuite) TestRegisterWriterExistingName(c *gc.C) {
 	err := loggo.RegisterWriter("default", &loggotest.Writer{}, loggo.INFO)
-	c.Assert(err, gc.ErrorMatches, `there is already a Writer registered with the name "default"`)
+	c.Assert(err, gc.ErrorMatches, `there is already a Writer with the name "default"`)
 }
 
 func (*GlobalWritersSuite) TestRegisterNilWriter(c *gc.C) {
@@ -200,7 +200,7 @@ func (*GlobalWritersSuite) TestReplaceDefaultWriterNoDefault(c *gc.C) {
 	loggo.RemoveWriter("default")
 	oldWriter, err := loggo.ReplaceDefaultWriter(&loggotest.Writer{})
 	c.Assert(oldWriter, gc.IsNil)
-	c.Assert(err, gc.ErrorMatches, `there is no "default" writer`)
+	c.Assert(err, gc.ErrorMatches, `Writer "default" is not recognized`)
 }
 
 func (s *GlobalWritersSuite) TestWillWrite(c *gc.C) {
