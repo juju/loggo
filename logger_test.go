@@ -154,19 +154,6 @@ func (*loggerSuite) TestLevelsInherited(c *gc.C) {
 	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.INFO)
 }
 
-type stack_error struct {
-	message string
-	stack   []string
-}
-
-func (s *stack_error) Error() string {
-	return s.message
-}
-
-func (s *stack_error) StackTrace() []string {
-	return s.stack
-}
-
 func checkLastMessage(c *gc.C, writer *loggo.TestWriter, expected string) {
 	log := writer.Log()
 	writer.Clear()
