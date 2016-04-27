@@ -11,23 +11,6 @@ import (
 	"time"
 )
 
-// A Logger represents a logging module. It has an associated logging
-// level which can be changed; messages of lesser severity will
-// be dropped. Loggers have a hierarchical relationship - see
-// the package documentation.
-//
-// The zero Logger value is usable - any messages logged
-// to it will be sent to the root Logger.
-type Logger struct {
-	impl *module
-}
-
-type module struct {
-	name   string
-	level  Level
-	parent *module
-}
-
 // Initially the modules map only contains the root module.
 var (
 	root         = &module{level: WARNING}
@@ -48,6 +31,16 @@ func LoggerInfo() string {
 	return loggerInfo(modules)
 }
 
+// GetLogger returns a Logger for the given module name,
+// creating it and its parents if necessary.
+func GetLogger(name string) Logger {
+	// Lowercase the module name, and look for it in the modules map.
+	name = strings.ToLower(name)
+	modulesMutex.Lock()
+	defer modulesMutex.Unlock()
+	return getLoggerInternal(name)
+}
+
 // getLoggerInternal assumes that the modulesMutex is locked.
 func getLoggerInternal(name string) Logger {
 	impl, found := modules[name]
@@ -64,16 +57,6 @@ func getLoggerInternal(name string) Logger {
 	return Logger{impl}
 }
 
-// GetLogger returns a Logger for the given module name,
-// creating it and its parents if necessary.
-func GetLogger(name string) Logger {
-	// Lowercase the module name, and look for it in the modules map.
-	name = strings.ToLower(name)
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	return getLoggerInternal(name)
-}
-
 // ResetLogging iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING.
 func ResetLoggers() {
@@ -86,6 +69,44 @@ func ResetLoggers() {
 			module.level.set(UNSPECIFIED)
 		}
 	}
+}
+
+type module struct {
+	name   string
+	level  Level
+	parent *module
+}
+
+// Name returns the module's name.
+func (module *module) Name() string {
+	if module.name == "" {
+		return "<root>"
+	}
+	return module.name
+}
+
+func (module *module) getEffectiveLogLevel() Level {
+	// Note: the root module is guaranteed to have a
+	// specified logging level, so acts as a suitable sentinel
+	// for this loop.
+	for {
+		if level := module.level.get(); level != UNSPECIFIED {
+			return level
+		}
+		module = module.parent
+	}
+	panic("unreachable")
+}
+
+// A Logger represents a logging module. It has an associated logging
+// level which can be changed; messages of lesser severity will
+// be dropped. Loggers have a hierarchical relationship - see
+// the package documentation.
+//
+// The zero Logger value is usable - any messages logged
+// to it will be sent to the root Logger.
+type Logger struct {
+	impl *module
 }
 
 func (logger Logger) getModule() *module {
@@ -103,26 +124,6 @@ func (logger Logger) Name() string {
 // LogLevel returns the configured log level of the logger.
 func (logger Logger) LogLevel() Level {
 	return logger.getModule().level.get()
-}
-
-func (module *module) getEffectiveLogLevel() Level {
-	// Note: the root module is guaranteed to have a
-	// specified logging level, so acts as a suitable sentinel
-	// for this loop.
-	for {
-		if level := module.level.get(); level != UNSPECIFIED {
-			return level
-		}
-		module = module.parent
-	}
-	panic("unreachable")
-}
-
-func (module *module) Name() string {
-	if module.name == "" {
-		return "<root>"
-	}
-	return module.name
 }
 
 // EffectiveLogLevel returns the effective log level of
