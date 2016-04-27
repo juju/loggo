@@ -6,7 +6,6 @@ package loggo
 import (
 	"fmt"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +37,17 @@ var (
 	}
 )
 
+// LoggerInfo returns information about the configured loggers and their
+// logging levels. The information is returned in the format expected by
+// ConfigureLoggers. Loggers with UNSPECIFIED level will not
+// be included.
+func LoggerInfo() string {
+	modulesMutex.Lock()
+	defer modulesMutex.Unlock()
+
+	return loggerInfo(modules)
+}
+
 // getLoggerInternal assumes that the modulesMutex is locked.
 func getLoggerInternal(name string) Logger {
 	impl, found := modules[name]
@@ -62,98 +72,6 @@ func GetLogger(name string) Logger {
 	modulesMutex.Lock()
 	defer modulesMutex.Unlock()
 	return getLoggerInternal(name)
-}
-
-// LoggerInfo returns information about the configured loggers and their logging
-// levels.  The information is returned in the format expected by
-// ConfigureModules. Loggers with UNSPECIFIED level will not
-// be included.
-func LoggerInfo() string {
-	output := []string{}
-	// output in alphabetical order.
-	keys := []string{}
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	for key := range modules {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, name := range keys {
-		mod := modules[name]
-		severity := mod.level.get()
-		if severity == UNSPECIFIED {
-			continue
-		}
-		output = append(output, fmt.Sprintf("%s=%s", mod.Name(), severity))
-	}
-	return strings.Join(output, ";")
-}
-
-// ParseConfigurationString parses a logger configuration string into a map of
-// logger names and their associated log level. This method is provided to
-// allow other programs to pre-validate a configuration string rather than
-// just calling ConfigureLoggers.
-//
-// Loggers are colon- or semicolon-separated; each module is specified as
-// <modulename>=<level>.  White space outside of module names and levels is
-// ignored.  The root module is specified with the name "<root>".
-//
-// As a special case, a log level may be specified on its own.
-// This is equivalent to specifying the level of the root module,
-// so "DEBUG" is equivalent to `<root>=DEBUG`
-//
-// An example specification:
-//	`<root>=ERROR; foo.bar=WARNING`
-func ParseConfigurationString(specification string) (map[string]Level, error) {
-	levels := make(map[string]Level)
-	if level, ok := ParseLevel(specification); ok {
-		levels[""] = level
-		return levels, nil
-	}
-	values := strings.FieldsFunc(specification, func(r rune) bool { return r == ';' || r == ':' })
-	for _, value := range values {
-		s := strings.SplitN(value, "=", 2)
-		if len(s) < 2 {
-			return nil, fmt.Errorf("logger specification expected '=', found %q", value)
-		}
-		name := strings.TrimSpace(s[0])
-		levelStr := strings.TrimSpace(s[1])
-		if name == "" || levelStr == "" {
-			return nil, fmt.Errorf("logger specification %q has blank name or level", value)
-		}
-		if name == "<root>" {
-			name = ""
-		}
-		level, ok := ParseLevel(levelStr)
-		if !ok {
-			return nil, fmt.Errorf("unknown severity level %q", levelStr)
-		}
-		levels[name] = level
-	}
-	return levels, nil
-}
-
-// ConfigureLoggers configures loggers according to the given string
-// specification, which specifies a set of modules and their associated
-// logging levels.  Loggers are colon- or semicolon-separated; each
-// module is specified as <modulename>=<level>.  White space outside of
-// module names and levels is ignored.  The root module is specified
-// with the name "<root>".
-//
-// An example specification:
-//	`<root>=ERROR; foo.bar=WARNING`
-func ConfigureLoggers(specification string) error {
-	if specification == "" {
-		return nil
-	}
-	levels, err := ParseConfigurationString(specification)
-	if err != nil {
-		return err
-	}
-	for name, level := range levels {
-		GetLogger(name).SetLogLevel(level)
-	}
-	return nil
 }
 
 // ResetLogging iterates through the known modules and sets the levels of all
