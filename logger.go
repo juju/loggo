@@ -13,7 +13,6 @@ import (
 
 // Initially the modules map only contains the root module.
 var (
-	root         = &module{level: WARNING}
 	modulesMutex sync.Mutex
 	modules      = map[string]*module{
 		"": root,
@@ -69,33 +68,6 @@ func ResetLoggers() {
 			module.level.set(UNSPECIFIED)
 		}
 	}
-}
-
-type module struct {
-	name   string
-	level  Level
-	parent *module
-}
-
-// Name returns the module's name.
-func (module *module) Name() string {
-	if module.name == "" {
-		return "<root>"
-	}
-	return module.name
-}
-
-func (module *module) getEffectiveLogLevel() Level {
-	// Note: the root module is guaranteed to have a
-	// specified logging level, so acts as a suitable sentinel
-	// for this loop.
-	for {
-		if level := module.level.get(); level != UNSPECIFIED {
-			return level
-		}
-		module = module.parent
-	}
-	panic("unreachable")
 }
 
 // A Logger represents a logging module. It has an associated logging
