@@ -7,13 +7,9 @@ import (
 	"os"
 )
 
-// defaultName is the name of a writer that is registered
-// by default that writes to stderr.
-const defaultName = "default"
-
 func defaultWriters() map[string]*minLevelWriter {
 	return map[string]*minLevelWriter{
-		defaultName: &minLevelWriter{
+		defaultWriterName: &minLevelWriter{
 			writer: NewSimpleWriter(os.Stderr, &DefaultFormatter{}),
 			level:  TRACE,
 		},
@@ -21,7 +17,7 @@ func defaultWriters() map[string]*minLevelWriter {
 }
 
 var (
-	globalWriters = newWriters(defaultWriters())
+	globalWriters = NewWriters(defaultWriters())
 	globalLoggers = loggers{
 		m: newModules(WARNING),
 		w: globalWriters,
@@ -57,7 +53,7 @@ func ResetWriters() {
 // RemoveWriter and then RegisterWriter with the name "default".  The previous
 // default writer, if any is returned.
 func ReplaceDefaultWriter(writer Writer) (Writer, error) {
-	return globalWriters.replace(defaultName, writer)
+	return globalWriters.replace(defaultWriterName, writer)
 }
 
 // RegisterWriter adds the writer to the list of writers that get notified
@@ -65,7 +61,7 @@ func ReplaceDefaultWriter(writer Writer) (Writer, error) {
 // level that will be written, and a name for the writer.  If there is already
 // a registered writer with that name, an error is returned.
 func RegisterWriter(name string, writer Writer, minLevel Level) error {
-	return globalWriters.addWithLevel(name, writer, minLevel)
+	return globalWriters.AddWithLevel(name, writer, minLevel)
 }
 
 // RemoveWriter removes the Writer identified by 'name' and returns it.
@@ -82,5 +78,5 @@ func RemoveWriter(name string) (Writer, Level, error) {
 // at or above the given severity level. If it returns
 // false, a log message at the given level will be discarded.
 func WillWrite(level Level) bool {
-	return globalWriters.willWrite(level)
+	return globalWriters.WillWrite(level)
 }

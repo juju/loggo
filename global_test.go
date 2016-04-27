@@ -123,7 +123,23 @@ func (s *GlobalWritersSuite) TearDownTest(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesDefault(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	writer := &loggotest.Writer{}
+	_, err := loggo.ReplaceDefaultWriter(writer)
+	c.Assert(err, gc.IsNil)
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
+
+	logger.Infof("message")
+
+	loggotest.CheckLastMessage(c, writer, "message")
+}
+
+func (s *GlobalWritersSuite) TestLoggerWriterRegisteredLater(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
+	_, err := loggo.ReplaceDefaultWriter(writer)
+	c.Assert(err, gc.IsNil)
 
 	logger.Infof("message")
 
@@ -131,21 +147,26 @@ func (s *GlobalWritersSuite) TestLoggerUsesDefault(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesMultiple(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
-	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
+	writer := &loggotest.Writer{}
+	_, err := loggo.ReplaceDefaultWriter(writer)
 	c.Assert(err, gc.IsNil)
+	err = loggo.RegisterWriter("test", writer, loggo.TRACE)
+	c.Assert(err, gc.IsNil)
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
 
 	logger.Infof("message")
 
 	log := writer.Log()
-	c.Check(log, gc.HasLen, 2)
+	c.Assert(log, gc.HasLen, 2)
 	c.Check(log[0].Message, gc.Equals, "message")
 	c.Check(log[1].Message, gc.Equals, "message")
 }
 
 func (s *GlobalWritersSuite) TestLoggerRespectsWriterLevel(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	logger := loggo.GetLogger("test.writer")
 	loggo.RemoveWriter("default")
+	writer := &loggotest.Writer{}
 	err := loggo.RegisterWriter("test", writer, loggo.ERROR)
 	c.Assert(err, gc.IsNil)
 
@@ -229,7 +250,8 @@ var _ = gc.Suite(&GlobalBenchmarksSuite{})
 
 func (s *GlobalBenchmarksSuite) SetUpTest(c *gc.C) {
 	loggo.ResetLoggers()
-	s.logger, s.writer = loggotest.TraceLogger("test.writer")
+	s.logger = loggo.GetLogger("test.writer")
+	s.writer = &loggotest.Writer{}
 	loggo.RemoveWriter("default")
 	err := loggo.RegisterWriter("test", s.writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)

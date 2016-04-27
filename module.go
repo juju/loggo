@@ -63,16 +63,27 @@ func (module *module) Name() string {
 }
 
 func (module *module) getEffectiveLogLevel() Level {
-	// Note: the root module is guaranteed to have a
-	// specified logging level, so acts as a suitable sentinel
-	// for this loop.
 	for {
+		if module == nil {
+			// Under normal circumstances, there will always be a root
+			// module with a non-UNSPECIFIED level.
+			return UNSPECIFIED
+		}
 		if level := module.level.get(); level != UNSPECIFIED {
 			return level
 		}
 		module = module.parent
 	}
-	panic("unreachable")
+}
+
+// setLevel sets the severity level of the given module.
+// The root module cannot be set to UNSPECIFIED level.
+func (module *module) setLevel(level Level) {
+	// The root module can't be unspecified (see getEffectiveLogLevel).
+	if module.name == rootName && level == UNSPECIFIED {
+		level = defaultRootLevel
+	}
+	module.level.set(level)
 }
 
 type modules struct {

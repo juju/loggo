@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// defaultWriterName is the name of the writer default writer.
+const defaultWriterName = "default"
+
 // Writer is implemented by any recipient of log messages.
 type Writer interface {
 	// Write writes a message to the Writer with the given
@@ -43,25 +46,25 @@ type minLevelWriter struct {
 	level  Level
 }
 
-// writers holds a set of Writers and provides operations for
+// Writers holds a set of Writers and provides operations for
 // acting on that set. It also acts as a single Writer.
-type writers struct {
+type Writers struct {
 	mu               sync.Mutex
 	combinedMinLevel Level
 	all              map[string]*minLevelWriter
 	init             func() map[string]*minLevelWriter
 }
 
-// newWriters creates a new set of writers using the provided
+// NewWriters creates a new set of Writers using the provided
 // details.
-func newWriters(initial map[string]*minLevelWriter) *writers {
-	ws := &writers{}
+func NewWriters(initial map[string]*minLevelWriter) *Writers {
+	ws := &Writers{}
 	ws.reset(initial)
 	return ws
 }
 
-// reset puts the list of writers back into the initial state.
-func (ws *writers) reset(initial map[string]*minLevelWriter) {
+// reset puts the list of Writers back into the initial state.
+func (ws *Writers) reset(initial map[string]*minLevelWriter) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -72,14 +75,14 @@ func (ws *writers) reset(initial map[string]*minLevelWriter) {
 	ws.resetMinLevel()
 }
 
-// addWithLevel adds the writer to the list of writers that get notified
+// AddWithLevel adds the writer to the list of Writers that get notified
 // when Write() is called. When adding, the caller specifies the
 // minimum logging level that will be written and a name for the
 // writer. The name is used to identify the writer later (e.g. when
 // removing it).
 //
 // If there is already a writer with that name, an error is returned.
-func (ws *writers) addWithLevel(name string, writer Writer, minLevel Level) error {
+func (ws *Writers) AddWithLevel(name string, writer Writer, minLevel Level) error {
 	if writer == nil {
 		return fmt.Errorf("Writer cannot be nil")
 	}
@@ -89,13 +92,13 @@ func (ws *writers) addWithLevel(name string, writer Writer, minLevel Level) erro
 	})
 }
 
-// add adds the writer to the list of writers that get notified when
+// add adds the writer to the list of Writers that get notified when
 // Write() is called. When adding, the caller specifies the name for
 // the writer. The name is used to identify the writer later (e.g. when
 // removing it).
 //
 // If there is already a writer with that name, an error is returned.
-func (ws *writers) add(name string, writer *minLevelWriter) error {
+func (ws *Writers) add(name string, writer *minLevelWriter) error {
 	if writer == nil {
 		return fmt.Errorf("Writer cannot be nil")
 	}
@@ -110,7 +113,7 @@ func (ws *writers) add(name string, writer *minLevelWriter) error {
 	return nil
 }
 
-func (ws *writers) addUnlocked(name string, writer *minLevelWriter) error {
+func (ws *Writers) addUnlocked(name string, writer *minLevelWriter) error {
 	if _, found := ws.all[name]; found {
 		return fmt.Errorf("there is already a Writer with the name %q", name)
 	}
@@ -121,7 +124,7 @@ func (ws *writers) addUnlocked(name string, writer *minLevelWriter) error {
 // remove drops the Writer identified by 'name' from the set and
 // returns that writer. If the Writer is not found, an error is
 // returned.
-func (ws *writers) remove(name string) (*minLevelWriter, error) {
+func (ws *Writers) remove(name string) (*minLevelWriter, error) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -134,7 +137,7 @@ func (ws *writers) remove(name string) (*minLevelWriter, error) {
 	return writer, nil
 }
 
-func (ws *writers) removeUnlocked(name string) (*minLevelWriter, error) {
+func (ws *Writers) removeUnlocked(name string) (*minLevelWriter, error) {
 	writer, found := ws.all[name]
 	if !found {
 		return nil, fmt.Errorf("Writer %q is not recognized", name)
@@ -146,7 +149,7 @@ func (ws *writers) removeUnlocked(name string) (*minLevelWriter, error) {
 // replace is a convenience method that does the atomic equivalent of
 // calling remove() and then add(). The previous writer, which
 // must exist, is returned.
-func (ws *writers) replace(name string, newWriter Writer) (Writer, error) {
+func (ws *Writers) replace(name string, newWriter Writer) (Writer, error) {
 	if newWriter == nil {
 		return nil, fmt.Errorf("Writer cannot be nil")
 	}
@@ -167,7 +170,7 @@ func (ws *writers) replace(name string, newWriter Writer) (Writer, error) {
 }
 
 // Write implements Writer, sending the message to each known writer.
-func (ws *writers) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
+func (ws *Writers) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -178,14 +181,14 @@ func (ws *writers) Write(level Level, module, filename string, line int, timesta
 	}
 }
 
-// willWrite returns whether there are any writers
+// WillWrite returns whether there are any Writers
 // at or above the given severity level. If it returns
 // false, any log message at the given level will be discarded.
-func (ws *writers) willWrite(level Level) bool {
+func (ws *Writers) WillWrite(level Level) bool {
 	return level >= ws.combinedMinLevel.get()
 }
 
-func (ws *writers) resetMinLevel() {
+func (ws *Writers) resetMinLevel() {
 	// We assume the lock is already held
 	minLevel := CRITICAL
 	for _, writer := range ws.all {
