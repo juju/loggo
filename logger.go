@@ -32,7 +32,7 @@ func newLogger(name string, parent *module) Logger {
 
 func (logger Logger) getModule() *module {
 	if logger.impl == nil {
-		return root
+		return globalModules.get(rootName)
 	}
 	return logger.impl
 }
