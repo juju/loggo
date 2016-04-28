@@ -1,4 +1,4 @@
-// Copyright 2014 Canonical Ltd.
+// Copyright 2016 Canonical Ltd.
 // Licensed under the LGPLv3, see LICENCE file for details.
 
 package loggo
@@ -22,7 +22,10 @@ func defaultWriters() map[string]*minLevelWriter {
 
 var (
 	globalWriters = newWriters(defaultWriters())
-	globalModules = newModules(WARNING)
+	globalLoggers = loggers{
+		m: newModules(WARNING),
+		w: globalWriters,
+	}
 )
 
 // LoggerInfo returns information about the configured loggers and their
@@ -30,21 +33,19 @@ var (
 // ConfigureLoggers. Loggers with UNSPECIFIED level will not
 // be included.
 func LoggerInfo() string {
-	return globalModules.config()
+	return globalLoggers.m.config()
 }
 
 // GetLogger returns a Logger for the given module name,
 // creating it and its parents if necessary.
 func GetLogger(name string) Logger {
-	return Logger{
-		impl: globalModules.get(name),
-	}
+	return globalLoggers.get(name)
 }
 
 // ResetLogging iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING.
 func ResetLoggers() {
-	globalModules.resetLevels()
+	globalLoggers.m.resetLevels()
 }
 
 // ResetWriters puts the list of writers back into the initial state.

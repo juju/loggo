@@ -32,8 +32,8 @@ func newLogger(name string, parent *module) Logger {
 }
 
 func (logger Logger) getModule() *module {
-	if logger.impl == nil {
-		return globalModules.get(rootName)
+	if logger.impl == nil { // Support zero values.
+		return globalLoggers.m.get(rootName)
 	}
 	return logger.impl
 }
@@ -185,4 +185,17 @@ func (logger Logger) IsDebugEnabled() bool {
 // at trace level.
 func (logger Logger) IsTraceEnabled() bool {
 	return logger.IsLevelEnabled(TRACE)
+}
+
+type loggers struct {
+	m *modules
+	w *writers
+}
+
+// get returns a Logger for the given module name, creating it and
+// its parents if necessary.
+func (ls *loggers) get(name string) Logger {
+	return Logger{
+		impl: ls.m.get(name),
+	}
 }
