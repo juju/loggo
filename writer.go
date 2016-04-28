@@ -24,6 +24,17 @@ type Writer interface {
 	Write(level Level, name, filename string, line int, timestamp time.Time, message string)
 }
 
+// MinLevelWriter is a writer that exposes its minimum log level.
+type MinLevelWriter interface {
+	Writer
+	HasMinLevel
+}
+
+type minLevelWriter struct {
+	writer Writer
+	level  Level
+}
+
 type simpleWriter struct {
 	writer    io.Writer
 	formatter Formatter
@@ -39,11 +50,6 @@ func NewSimpleWriter(writer io.Writer, formatter Formatter) Writer {
 func (simple *simpleWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
 	logLine := simple.formatter.Format(level, module, filename, line, timestamp, message)
 	fmt.Fprintln(simple.writer, logLine)
-}
-
-type minLevelWriter struct {
-	writer Writer
-	level  Level
 }
 
 // Writers holds a set of Writers and provides operations for
@@ -169,6 +175,12 @@ func (ws *Writers) replace(name string, newWriter Writer) (Writer, error) {
 	return oldWriter, nil
 }
 
+// MinLogLevel returns the minimum log level at which at least one of
+// the writers will write.
+func (ws *Writers) MinLogLevel() Level {
+	return ws.combinedMinLevel
+}
+
 // Write implements Writer, sending the message to each known writer.
 func (ws *Writers) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
 	ws.mu.Lock()
@@ -179,13 +191,6 @@ func (ws *Writers) Write(level Level, module, filename string, line int, timesta
 			mlw.writer.Write(level, module, filename, line, timestamp, message)
 		}
 	}
-}
-
-// WillWrite returns whether there are any Writers
-// at or above the given severity level. If it returns
-// false, any log message at the given level will be discarded.
-func (ws *Writers) WillWrite(level Level) bool {
-	return level >= ws.combinedMinLevel.get()
 }
 
 func (ws *Writers) resetMinLevel() {

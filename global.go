@@ -78,5 +78,5 @@ func RemoveWriter(name string) (Writer, Level, error) {
 // at or above the given severity level. If it returns
 // false, a log message at the given level will be discarded.
 func WillWrite(level Level) bool {
-	return globalWriters.WillWrite(level)
+	return IsLevelEnabled(globalWriters, level)
 }

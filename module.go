@@ -62,24 +62,25 @@ func (module *module) Name() string {
 	return module.name
 }
 
-func (module *module) getEffectiveLogLevel() Level {
-	for {
-		if module == nil {
-			// Under normal circumstances, there will always be a root
-			// module with a non-UNSPECIFIED level.
-			return UNSPECIFIED
-		}
-		if level := module.level.get(); level != UNSPECIFIED {
-			return level
-		}
-		module = module.parent
+// MinLogLevel returns the configured minimum log level of the
+// module. This is the level at which messages with a lower level
+// will be discarded.
+func (module *module) MinLogLevel() Level {
+	return module.level.get()
+}
+
+// ParentWithMinLogLevel returns the module's parent (or nil).
+func (module *module) ParentWithMinLogLevel() HasMinLevel {
+	if module.parent == nil { // avoid double nil
+		return nil
 	}
+	return module.parent
 }
 
 // setLevel sets the severity level of the given module.
 // The root module cannot be set to UNSPECIFIED level.
 func (module *module) setLevel(level Level) {
-	// The root module can't be unspecified (see getEffectiveLogLevel).
+	// The root module can't be unspecified (see Logger.EffectiveLogLevel).
 	if module.name == rootName && level == UNSPECIFIED {
 		level = defaultRootLevel
 	}

@@ -11,16 +11,6 @@ import (
 	"time"
 )
 
-// LoggerWriter is a Writer used by a Logger.
-type LoggerWriter interface {
-	Writer
-
-	// WillWrite returns whether the the writer will write at or above
-	// the given severity level. If it returns false, any log message at
-	// the given level will be discarded.
-	WillWrite(Level) bool
-}
-
 // A Logger represents a logging module. It has an associated logging
 // level which can be changed; messages of lesser severity will
 // be dropped. Loggers have a hierarchical relationship - see
@@ -30,7 +20,7 @@ type LoggerWriter interface {
 // to it will be sent to the root Logger.
 type Logger struct {
 	impl   *module
-	writer LoggerWriter
+	writer MinLevelWriter
 }
 
 // NewRootLogger creates a root logger and returns it, along with
@@ -53,7 +43,7 @@ func NewLogger(name string, parent Logger) (Logger, *Writers) {
 	if parent.isZero() {
 		parent, writers = NewRootLogger()
 	} else {
-		writers = NewWriters(nil)
+		writers = NewWriters(nil) // starts off empty
 		if parent.writer != nil {
 			// We set the level as low as possible in order to defer
 			// strictly to the new logger's level.
@@ -65,7 +55,7 @@ func NewLogger(name string, parent Logger) (Logger, *Writers) {
 	return logger, writers
 }
 
-func newLogger(name string, parent *module, writer LoggerWriter) Logger {
+func newLogger(name string, parent *module, writer MinLevelWriter) Logger {
 	// The parent *may* be nil.
 	name = strings.ToLower(name)
 	return Logger{
@@ -95,12 +85,12 @@ func (logger Logger) Name() string {
 	return logger.getModule().Name()
 }
 
-// LogLevel returns the configured log level of the logger.
+// LogLevel returns the configured min log level of the logger.
 func (logger Logger) LogLevel() Level {
-	return logger.getModule().level.get()
+	return logger.getModule().MinLogLevel()
 }
 
-// EffectiveLogLevel returns the effective log level of
+// EffectiveLogLevel returns the effective min log level of
 // the receiver - that is, messages with a lesser severity
 // level will be discarded.
 //
@@ -108,7 +98,7 @@ func (logger Logger) LogLevel() Level {
 // it will be taken from the effective log level of its
 // parent.
 func (logger Logger) EffectiveLogLevel() Level {
-	return logger.getModule().getEffectiveLogLevel()
+	return EffectiveMinLevel(logger.getModule())
 }
 
 // SetLogLevel sets the severity level of the given logger.
@@ -166,10 +156,10 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 }
 
 func (logger Logger) willWrite(level Level) bool {
-	if logger.getModule().getEffectiveLogLevel() > level {
+	if !IsLevelEnabled(logger.getModule(), level) {
 		return false
 	}
-	if !logger.writer.WillWrite(level) {
+	if !IsLevelEnabled(logger.writer, level) {
 		return false
 	}
 	if level < TRACE || level > CRITICAL {
@@ -211,7 +201,7 @@ func (logger Logger) Tracef(message string, args ...interface{}) {
 // IsLevelEnabled returns whether debugging is enabled
 // for the given log level.
 func (logger Logger) IsLevelEnabled(level Level) bool {
-	return logger.getModule().getEffectiveLogLevel() <= level
+	return IsLevelEnabled(logger.getModule(), level)
 }
 
 // IsErrorEnabled returns whether debugging is enabled
