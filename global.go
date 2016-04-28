@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-func defaultWriters() map[string]*minLevelWriter {
-	return map[string]*minLevelWriter{
-		defaultWriterName: &minLevelWriter{
-			writer: NewSimpleWriter(os.Stderr, &DefaultFormatter{}),
-			level:  TRACE,
-		},
+func defaultWriters() map[string]MinLevelWriter {
+	return map[string]MinLevelWriter{
+		defaultWriterName: NewMinLevelWriter(
+			NewSimpleWriter(os.Stderr, &DefaultFormatter{}),
+			TRACE,
+		),
 	}
 }
 
@@ -71,7 +71,7 @@ func RemoveWriter(name string) (Writer, Level, error) {
 	if err != nil {
 		return nil, UNSPECIFIED, err
 	}
-	return registered.writer, registered.level, nil
+	return registered, registered.MinLogLevel(), nil
 }
 
 // WillWrite returns whether there are any writers registered
