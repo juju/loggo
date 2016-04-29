@@ -33,8 +33,14 @@ type TestWriter struct {
 func (writer *TestWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
-	writer.log = append(writer.log,
-		TestLogValues{level, module, path.Base(filename), line, timestamp, message})
+	writer.log = append(writer.log, TestLogValues{
+		Level:     level,
+		Module:    module,
+		Filename:  path.Base(filename),
+		Line:      line,
+		Timestamp: timestamp,
+		Message:   message,
+	})
 }
 
 // Clear removes any saved log messages.

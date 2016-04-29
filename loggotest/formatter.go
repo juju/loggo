@@ -4,8 +4,6 @@
 package loggotest
 
 import (
-	"time"
-
 	"github.com/juju/loggo"
 )
 
@@ -14,22 +12,22 @@ import (
 type Formatter struct {
 	Writer
 
-	format func(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string
+	format func(loggo.Record) string
 }
 
 // NewFormatter returns a new Formatter that wraps the given
 // format func. If the func is nil then Format() will return the message.
-func NewFormatter(format func(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string) *Formatter {
+func NewFormatter(format func(loggo.Record) string) *Formatter {
 	return &Formatter{
 		format: format,
 	}
 }
 
 // Format saves the params as members in the TestLogValues struct appended to the Log array.
-func (f *Formatter) Format(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string {
-	f.Write(level, module, filename, line, timestamp, message)
+func (f *Formatter) Format(rec loggo.Record) string {
+	f.Write(rec)
 	if f.format == nil {
-		return message
+		return rec.Message
 	}
-	return f.format(level, module, filename, line, timestamp, message)
+	return f.format(rec)
 }

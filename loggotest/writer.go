@@ -6,44 +6,25 @@ package loggotest
 import (
 	"path"
 	"sync"
-	"time"
 
 	gc "gopkg.in/check.v1"
 
 	"github.com/juju/loggo"
 )
 
-// TODO(ericsnow) LogValues can go away once we have a Record type.
-
-// LogValues represents a single logging call.
-type LogValues struct {
-	Level     loggo.Level
-	Module    string
-	Filename  string
-	Line      int
-	Timestamp time.Time
-	Message   string
-}
-
 // Writer is a useful loggo.Writer for testing purposes. Each component
 // of the logging message is stored in the Log array.
 type Writer struct {
 	mu  sync.Mutex
-	log []LogValues
+	log []loggo.Record
 }
 
 // Write saves the params as members in the LogValues struct appended to the Log array.
-func (writer *Writer) Write(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) {
+func (writer *Writer) Write(rec loggo.Record) {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
-	writer.log = append(writer.log, LogValues{
-		Level:     level,
-		Module:    module,
-		Filename:  path.Base(filename),
-		Line:      line,
-		Timestamp: timestamp,
-		Message:   message,
-	})
+	rec.Filename = path.Base(rec.Filename)
+	writer.log = append(writer.log, rec)
 }
 
 // Clear removes any saved log messages.
@@ -54,10 +35,10 @@ func (writer *Writer) Clear() {
 }
 
 // Log returns a copy of the current logged values.
-func (writer *Writer) Log() []LogValues {
+func (writer *Writer) Log() []loggo.Record {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
-	v := make([]LogValues, len(writer.log))
+	v := make([]loggo.Record, len(writer.log))
 	copy(v, writer.log)
 	return v
 }

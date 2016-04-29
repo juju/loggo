@@ -6,7 +6,6 @@ package loggo
 import (
 	"fmt"
 	"io"
-	"time"
 )
 
 // defaultWriterName is the name of the writer default writer.
@@ -15,12 +14,8 @@ const defaultWriterName = "default"
 // Writer is implemented by any recipient of log messages.
 type Writer interface {
 	// Write writes a message to the Writer with the given
-	// level and logger name. The filename and line hold
-	// the file name and line number of the code that is
-	// generating the log message; the time stamp holds
-	// the time the log message was generated, and
-	// message holds the log message itself.
-	Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string)
+	// log record.
+	Write(Record)
 }
 
 // MinLevelWriter is a writer that exposes its minimum log level.
@@ -49,26 +44,38 @@ func (w minLevelWriter) MinLogLevel() Level {
 }
 
 // Write writes the log record.
-func (w minLevelWriter) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
-	if !IsLevelEnabled(&w, level) {
+func (w minLevelWriter) Write(rec Record) {
+	if !IsLevelEnabled(&w, rec.Level) {
 		return
 	}
-	w.writer.Write(level, loggerName, filename, line, timestamp, message)
+	w.writer.Write(rec)
 }
 
-type simpleWriter struct {
-	writer    io.Writer
-	formatter Formatter
-}
+// TODO(ericsnow) Eliminate NewSimpleWriter().
 
 // NewSimpleWriter returns a new writer that writes
 // log messages to the given io.Writer formatting the
 // messages with the given formatter.
-func NewSimpleWriter(writer io.Writer, formatter Formatter) Writer {
-	return &simpleWriter{writer, formatter}
+func NewSimpleWriter(writer io.Writer, formatter LegacyFormatter) Writer {
+	return &formattingWriter{writer, &legacyAdaptingFormatter{formatter}}
 }
 
-func (simple *simpleWriter) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
-	logLine := simple.formatter.Format(level, loggerName, filename, line, timestamp, message)
-	fmt.Fprintln(simple.writer, logLine)
+type formattingWriter struct {
+	writer    io.Writer
+	formatter Formatter
+}
+
+// NewFormattingWriter returns a new writer that writes
+// log messages to the given io.Writer formatting the
+// messages with the given formatter.
+func NewFormattingWriter(writer io.Writer, formatter Formatter) Writer {
+	return &formattingWriter{
+		writer:    writer,
+		formatter: formatter,
+	}
+}
+
+func (fw *formattingWriter) Write(rec Record) {
+	logLine := fw.formatter.Format(rec)
+	fmt.Fprintln(fw.writer, logLine)
 }

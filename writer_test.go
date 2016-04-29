@@ -19,22 +19,23 @@ var _ = gc.Suite(&SimpleWriterSuite{})
 
 func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 	now := time.Now()
-	formatter := loggotest.NewFormatter(func(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string {
-		return "<< " + message + " >>"
+	formatter := loggotest.NewFormatter(func(rec loggo.Record) string {
+		return "<< " + rec.Message + " >>"
 	})
 	buf := &bytes.Buffer{}
+	rec := loggo.Record{
+		Level:      loggo.INFO,
+		LoggerName: "test",
+		Filename:   "somefile.go",
+		Line:       12,
+		Timestamp:  now,
+		Message:    "a message",
+	}
 
-	writer := loggo.NewSimpleWriter(buf, formatter)
-	writer.Write(loggo.INFO, "test", "somefile.go", 12, now, "a message")
+	writer := loggo.NewFormattingWriter(buf, formatter)
+	writer.Write(rec)
 
 	log := formatter.Log()
-	c.Check(log, gc.DeepEquals, []loggotest.LogValues{{
-		Level:     loggo.INFO,
-		Module:    "test",
-		Filename:  "somefile.go",
-		Line:      12,
-		Timestamp: now,
-		Message:   "a message",
-	}})
+	c.Check(log, gc.DeepEquals, []loggo.Record{rec})
 	c.Check(buf.String(), gc.Equals, "<< a message >>\n")
 }

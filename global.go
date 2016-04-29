@@ -10,7 +10,7 @@ import (
 func defaultWriters() map[string]MinLevelWriter {
 	return map[string]MinLevelWriter{
 		defaultWriterName: NewMinLevelWriter(
-			NewSimpleWriter(os.Stderr, &DefaultFormatter{}),
+			NewFormattingWriter(os.Stderr, &DefaultFormatter{}),
 			TRACE,
 		),
 	}

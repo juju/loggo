@@ -6,7 +6,6 @@ package loggo
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
 // Writers holds a set of Writers and provides operations for
@@ -135,13 +134,13 @@ func (ws *Writers) MinLogLevel() Level {
 }
 
 // Write implements Writer, sending the message to each known writer.
-func (ws *Writers) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
+func (ws *Writers) Write(rec Record) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
 	for _, writer := range ws.all {
-		if IsLevelEnabled(writer, level) {
-			writer.Write(level, module, filename, line, timestamp, message)
+		if IsLevelEnabled(writer, rec.Level) {
+			writer.Write(rec)
 		}
 	}
 }

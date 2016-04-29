@@ -342,7 +342,7 @@ func (s *LoggerSuite) TestLoggerAsGoLogger(c *gc.C) {
 	records := writer.Log()
 	c.Assert(records, gc.HasLen, 1)
 	c.Assert(records[0].Level, gc.Equals, loggo.WARNING)
-	c.Assert(records[0].Module, gc.Equals, "<>")
+	c.Assert(records[0].LoggerName, gc.Equals, "<>")
 	c.Assert(records[0].Filename, gc.Equals, "logger_test.go")
 	c.Assert(records[0].Message, gc.Equals, "raw message")
 }

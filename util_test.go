@@ -10,7 +10,7 @@ import (
 
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/loggo/loggotest"
+	"github.com/juju/loggo"
 )
 
 func init() {
@@ -18,10 +18,10 @@ func init() {
 	setLocationsForTags("writer_test.go")
 }
 
-func assertLocation(c *gc.C, msg loggotest.LogValues, tag string) {
+func assertLocation(c *gc.C, rec loggo.Record, tag string) {
 	loc := location(tag)
-	c.Assert(msg.Filename, gc.Equals, loc.file)
-	c.Assert(msg.Line, gc.Equals, loc.line)
+	c.Assert(rec.Filename, gc.Equals, loc.file)
+	c.Assert(rec.Line, gc.Equals, loc.line)
 }
 
 // All this location stuff is to avoid having hard coded line numbers
