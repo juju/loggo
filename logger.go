@@ -21,6 +21,7 @@ type Logger struct {
 }
 
 func newLogger(name string, parent *module) Logger {
+	// The parent *may* be nil.
 	return Logger{
 		impl: &module{
 			name:   name,
