@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// LoggerInfo returns information about the given loggers and their
+// loggerInfo returns information about the given loggers and their
 // logging levels. The information is returned in the format expected
 // by ConfigureLoggers. Loggers with UNSPECIFIED level will not
 // be included.
