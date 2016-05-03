@@ -49,3 +49,28 @@ func (writer *TestWriter) Log() []TestLogValues {
 	copy(v, writer.log)
 	return v
 }
+
+// TestFormatter is a useful Writer for testing purposes. Each component
+// of the logging message is stored in the Log array.
+type TestFormatter struct {
+	TestWriter
+
+	format func(level Level, module, filename string, line int, timestamp time.Time, message string) string
+}
+
+// NewTestFormatter returns a new TestFormatter that wraps the given
+// format func. If the func is nil then Format() will return the message.
+func NewTestFormatter(format func(level Level, module, filename string, line int, timestamp time.Time, message string) string) *TestFormatter {
+	return &TestFormatter{
+		format: format,
+	}
+}
+
+// Format saves the params as members in the TestLogValues struct appended to the Log array.
+func (tf *TestFormatter) Format(level Level, module, filename string, line int, timestamp time.Time, message string) string {
+	tf.Write(level, module, filename, line, timestamp, message)
+	if tf.format == nil {
+		return message
+	}
+	return tf.format(level, module, filename, line, timestamp, message)
+}
