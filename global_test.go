@@ -4,11 +4,13 @@
 package loggo_test
 
 import (
+	"io/ioutil"
 	"os"
 
 	gc "gopkg.in/check.v1"
 
 	"github.com/juju/loggo"
+	"github.com/juju/loggo/loggotest"
 )
 
 type GlobalLoggersSuite struct{}
@@ -107,7 +109,7 @@ func (*GlobalLoggersSuite) TestLevelsInherited(c *gc.C) {
 
 type GlobalWritersSuite struct {
 	logger loggo.Logger
-	writer *loggo.TestWriter
+	writer *loggotest.Writer
 }
 
 var _ = gc.Suite(&GlobalWritersSuite{})
@@ -121,15 +123,15 @@ func (s *GlobalWritersSuite) TearDownTest(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesDefault(c *gc.C) {
-	logger, writer := newTraceLogger("test.writer")
+	logger, writer := loggotest.TraceLogger("test.writer")
 
 	logger.Infof("message")
 
-	checkLastMessage(c, writer, "message")
+	loggotest.CheckLastMessage(c, writer, "message")
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesMultiple(c *gc.C) {
-	logger, writer := newTraceLogger("test.writer")
+	logger, writer := loggotest.TraceLogger("test.writer")
 	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
 
@@ -142,7 +144,7 @@ func (s *GlobalWritersSuite) TestLoggerUsesMultiple(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerRespectsWriterLevel(c *gc.C) {
-	logger, writer := newTraceLogger("test.writer")
+	logger, writer := loggotest.TraceLogger("test.writer")
 	loggo.RemoveWriter("default")
 	err := loggo.RegisterWriter("test", writer, loggo.ERROR)
 	c.Assert(err, gc.IsNil)
@@ -166,7 +168,7 @@ func (*GlobalWritersSuite) TestRemoveDefaultWriter(c *gc.C) {
 }
 
 func (*GlobalWritersSuite) TestRegisterWriterExistingName(c *gc.C) {
-	err := loggo.RegisterWriter("default", &loggo.TestWriter{}, loggo.INFO)
+	err := loggo.RegisterWriter("default", &loggotest.Writer{}, loggo.INFO)
 	c.Assert(err, gc.ErrorMatches, `there is already a Writer registered with the name "default"`)
 }
 
@@ -177,13 +179,13 @@ func (*GlobalWritersSuite) TestRegisterNilWriter(c *gc.C) {
 
 func (*GlobalWritersSuite) TestRegisterWriterTypedNil(c *gc.C) {
 	// If the interface is a typed nil, we have to trust the user.
-	var writer *loggo.TestWriter
+	var writer *loggotest.Writer
 	err := loggo.RegisterWriter("nil", writer, loggo.INFO)
 	c.Assert(err, gc.IsNil)
 }
 
 func (*GlobalWritersSuite) TestReplaceDefaultWriter(c *gc.C) {
-	oldWriter, err := loggo.ReplaceDefaultWriter(&loggo.TestWriter{})
+	oldWriter, err := loggo.ReplaceDefaultWriter(&loggotest.Writer{})
 	c.Assert(oldWriter, gc.NotNil)
 	c.Assert(err, gc.IsNil)
 }
@@ -196,7 +198,7 @@ func (*GlobalWritersSuite) TestReplaceDefaultWriterWithNil(c *gc.C) {
 
 func (*GlobalWritersSuite) TestReplaceDefaultWriterNoDefault(c *gc.C) {
 	loggo.RemoveWriter("default")
-	oldWriter, err := loggo.ReplaceDefaultWriter(&loggo.TestWriter{})
+	oldWriter, err := loggo.ReplaceDefaultWriter(&loggotest.Writer{})
 	c.Assert(oldWriter, gc.IsNil)
 	c.Assert(err, gc.ErrorMatches, `there is no "default" writer`)
 }
@@ -220,14 +222,14 @@ func (s *GlobalWritersSuite) TestWillWrite(c *gc.C) {
 
 type GlobalBenchmarksSuite struct {
 	logger loggo.Logger
-	writer *loggo.TestWriter
+	writer *loggotest.Writer
 }
 
 var _ = gc.Suite(&GlobalBenchmarksSuite{})
 
 func (s *GlobalBenchmarksSuite) SetUpTest(c *gc.C) {
 	loggo.ResetLoggers()
-	s.logger, s.writer = newTraceLogger("test.writer")
+	s.logger, s.writer = loggotest.TraceLogger("test.writer")
 	loggo.RemoveWriter("default")
 	err := loggo.RegisterWriter("test", s.writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
@@ -261,8 +263,9 @@ func (s *GlobalBenchmarksSuite) BenchmarkLoggingTestWriters(c *gc.C) {
 }
 
 func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriter(c *gc.C) {
-	logFile, cleanup := setupTempFileWriter(c)
-	defer cleanup()
+	loggo.RemoveWriter("test")
+	logFile := s.setupTempFileWriter(c)
+	defer logFile.Close()
 	msg := "just a simple warning for %d"
 	for i := 0; i < c.N; i++ {
 		s.logger.Warningf(msg, i)
@@ -274,8 +277,8 @@ func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriter(c *gc.C) {
 }
 
 func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriterNoMessages(c *gc.C) {
-	logFile, cleanup := setupTempFileWriter(c)
-	defer cleanup()
+	logFile := s.setupTempFileWriter(c)
+	defer logFile.Close()
 	// Change the log level
 	writer, _, err := loggo.RemoveWriter("testfile")
 	c.Assert(err, gc.IsNil)
@@ -291,8 +294,8 @@ func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriterNoMessages(c *gc.C) {
 }
 
 func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriterNoMessagesLogLevel(c *gc.C) {
-	logFile, cleanup := setupTempFileWriter(c)
-	defer cleanup()
+	logFile := s.setupTempFileWriter(c)
+	defer logFile.Close()
 	// Change the log level
 	s.logger.SetLogLevel(loggo.WARNING)
 	msg := "just a simple warning for %d"
@@ -303,4 +306,14 @@ func (s *GlobalBenchmarksSuite) BenchmarkLoggingDiskWriterNoMessagesLogLevel(c *
 	c.Assert(err, gc.IsNil)
 	c.Assert(offset, gc.Equals, int64(0),
 		gc.Commentf("Data was written to the log file."))
+}
+
+func (s *GlobalBenchmarksSuite) setupTempFileWriter(c *gc.C) *os.File {
+	loggo.RemoveWriter("test")
+	logFile, err := ioutil.TempFile(c.MkDir(), "loggo-test")
+	c.Assert(err, gc.IsNil)
+	writer := loggo.NewSimpleWriter(logFile, &loggo.DefaultFormatter{})
+	err = loggo.RegisterWriter("testfile", writer, loggo.TRACE)
+	c.Assert(err, gc.IsNil)
+	return logFile
 }
