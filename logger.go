@@ -6,69 +6,8 @@ package loggo
 import (
 	"fmt"
 	"runtime"
-	"strings"
-	"sync"
 	"time"
 )
-
-// Initially the modules map only contains the root module.
-var (
-	modulesMutex sync.Mutex
-	modules      = map[string]*module{
-		"": root,
-	}
-)
-
-// LoggerInfo returns information about the configured loggers and their
-// logging levels. The information is returned in the format expected by
-// ConfigureLoggers. Loggers with UNSPECIFIED level will not
-// be included.
-func LoggerInfo() string {
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-
-	return loggerInfo(modules)
-}
-
-// GetLogger returns a Logger for the given module name,
-// creating it and its parents if necessary.
-func GetLogger(name string) Logger {
-	// Lowercase the module name, and look for it in the modules map.
-	name = strings.ToLower(name)
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	return getLoggerInternal(name)
-}
-
-// getLoggerInternal assumes that the modulesMutex is locked.
-func getLoggerInternal(name string) Logger {
-	impl, found := modules[name]
-	if found {
-		return Logger{impl}
-	}
-	parentName := ""
-	if i := strings.LastIndex(name, "."); i >= 0 {
-		parentName = name[0:i]
-	}
-	parent := getLoggerInternal(parentName).impl
-	impl = &module{name, UNSPECIFIED, parent}
-	modules[name] = impl
-	return Logger{impl}
-}
-
-// ResetLogging iterates through the known modules and sets the levels of all
-// to UNSPECIFIED, except for <root> which is set to WARNING.
-func ResetLoggers() {
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	for name, module := range modules {
-		if name == "" {
-			module.level.set(WARNING)
-		} else {
-			module.level.set(UNSPECIFIED)
-		}
-	}
-}
 
 // A Logger represents a logging module. It has an associated logging
 // level which can be changed; messages of lesser severity will
