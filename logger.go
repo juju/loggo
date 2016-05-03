@@ -20,6 +20,16 @@ type Logger struct {
 	impl *module
 }
 
+func newLogger(name string, parent *module) Logger {
+	return Logger{
+		impl: &module{
+			name:   name,
+			level:  UNSPECIFIED,
+			parent: parent,
+		},
+	}
+}
+
 func (logger Logger) getModule() *module {
 	if logger.impl == nil {
 		return root

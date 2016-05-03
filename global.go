@@ -50,10 +50,10 @@ func getLoggerInternal(name string) Logger {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}
-	parent := getLoggerInternal(parentName).impl
-	impl = &module{name, UNSPECIFIED, parent}
-	modules[name] = impl
-	return Logger{impl}
+	parent := getLoggerInternal(parentName)
+	logger := newLogger(name, parent.impl)
+	modules[name] = logger.impl
+	return logger
 }
 
 // ResetLogging iterates through the known modules and sets the levels of all

@@ -39,12 +39,12 @@ func (s *LoggerSuite) TestRootLogger(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestModuleName(c *gc.C) {
-	logger := loggo.GetLogger("loggo.testing")
+	logger := loggo.NewLogger("loggo.testing", nil)
 	c.Assert(logger.Name(), gc.Equals, "loggo.testing")
 }
 
 func (s *LoggerSuite) TestSetLevel(c *gc.C) {
-	logger := loggo.GetLogger("testing")
+	logger := loggo.NewLogger("testing", nil)
 
 	c.Assert(logger.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
 	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.WARNING)
@@ -108,17 +108,17 @@ func (s *LoggerSuite) TestSetLevel(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestModuleLowered(c *gc.C) {
-	logger1 := loggo.GetLogger("TESTING.MODULE")
-	logger2 := loggo.GetLogger("Testing")
+	logger1 := loggo.NewLogger("TESTING.MODULE", nil)
+	logger2 := loggo.NewLogger("Testing", nil)
 
 	c.Assert(logger1.Name(), gc.Equals, "testing.module")
 	c.Assert(logger2.Name(), gc.Equals, "testing")
 }
 
 func (s *LoggerSuite) TestLevelsInherited(c *gc.C) {
-	root := loggo.GetLogger("")
-	first := loggo.GetLogger("first")
-	second := loggo.GetLogger("first.second")
+	root := loggo.NewLogger("", nil)
+	first := loggo.NewLoggerWithParent("first", root, nil)
+	second := loggo.NewLoggerWithParent("first.second", first, nil)
 
 	root.SetLogLevel(loggo.ERROR)
 	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
