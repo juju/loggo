@@ -76,16 +76,11 @@ func ParseConfigurationString(specification string) (map[string]Level, error) {
 	return levels, nil
 }
 
-// ConfigureLoggers configures loggers according to the given string
-// specification, which specifies a set of modules and their associated
-// logging levels.  Loggers are colon- or semicolon-separated; each
-// module is specified as <modulename>=<level>.  White space outside of
-// module names and levels is ignored.  The root module is specified
-// with the name "<root>".
-//
-// An example specification:
-//	`<root>=ERROR; foo.bar=WARNING`
-func ConfigureLoggers(specification string) error {
+type loggerGetter interface {
+	Get(name string) Logger
+}
+
+func configureLoggers(specification string, loggers loggerGetter) error {
 	if specification == "" {
 		return nil
 	}
@@ -94,7 +89,7 @@ func ConfigureLoggers(specification string) error {
 		return err
 	}
 	for name, level := range levels {
-		GetLogger(name).SetLogLevel(level)
+		loggers.Get(name).SetLogLevel(level)
 	}
 	return nil
 }

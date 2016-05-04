@@ -156,7 +156,7 @@ func (m *modules) resolveUnlocked(name string) *module {
 	return impl
 }
 
-// ResetLogging iterates through the known modules and sets the levels of all
+// resetLevels iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING.
 func (m *modules) resetLevels() {
 	m.mu.Lock()

@@ -234,16 +234,52 @@ func (logger Logger) IsTraceEnabled() bool {
 	return logger.IsLevelEnabled(TRACE)
 }
 
-type loggers struct {
+// Loggers produces loggers for a hierarchy of modules. All the
+// loggers will share the same set of log writers.
+type Loggers struct {
 	m *modules
 	w *Writers
 }
 
-// get returns a Logger for the given module name, creating it and
+// NewLoggers returns a new Loggers that uses the provided writers.
+// If the root level is UNSPECIFIED, WARNING is used.
+func NewLoggers(rootLevel Level, writers *Writers) *Loggers {
+	return &Loggers{
+		m: newModules(rootLevel),
+		w: writers,
+	}
+}
+
+// LoggersFromConfig creates a new Loggers using the provided writers
+// and configures loggers according to the given spec.
+func LoggersFromConfig(spec string, writers *Writers) (*Loggers, error) {
+	loggers := NewLoggers(UNSPECIFIED, writers)
+	if err := configureLoggers(spec, loggers); err != nil {
+		return nil, err
+	}
+	loggers.m.rootLevel = loggers.Get(rootName).LogLevel()
+	return loggers, nil
+}
+
+// Get returns a Logger for the given module name, creating it and
 // its parents if necessary.
-func (ls *loggers) get(name string) Logger {
+func (ls *Loggers) Get(name string) Logger {
 	return Logger{
 		impl:   ls.m.get(name),
 		writer: ls.w,
 	}
+}
+
+// Config returns information about the loggers and their logging
+// levels. The information is returned in the format expected by
+// LoggersFromConfig. Loggers with UNSPECIFIED level will not
+// be included.
+func (ls *Loggers) Config() string {
+	return ls.m.config()
+}
+
+// resetLevels iterates through the known loggers and sets the levels
+// of all to UNSPECIFIED, except for <root> which is set to WARNING.
+func (ls *Loggers) resetLevels() {
+	ls.m.resetLevels()
 }

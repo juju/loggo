@@ -18,10 +18,7 @@ func defaultWriters() map[string]MinLevelWriter {
 
 var (
 	globalWriters = NewWriters(defaultWriters())
-	globalLoggers = loggers{
-		m: newModules(WARNING),
-		w: globalWriters,
-	}
+	globalLoggers = NewLoggers(WARNING, globalWriters)
 )
 
 // LoggerInfo returns information about the configured loggers and their
@@ -29,19 +26,19 @@ var (
 // ConfigureLoggers. Loggers with UNSPECIFIED level will not
 // be included.
 func LoggerInfo() string {
-	return globalLoggers.m.config()
+	return globalLoggers.Config()
 }
 
 // GetLogger returns a Logger for the given module name,
 // creating it and its parents if necessary.
 func GetLogger(name string) Logger {
-	return globalLoggers.get(name)
+	return globalLoggers.Get(name)
 }
 
 // ResetLogging iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING.
 func ResetLoggers() {
-	globalLoggers.m.resetLevels()
+	globalLoggers.resetLevels()
 }
 
 // ResetWriters puts the list of writers back into the initial state.
@@ -79,4 +76,17 @@ func RemoveWriter(name string) (Writer, Level, error) {
 // false, a log message at the given level will be discarded.
 func WillWrite(level Level) bool {
 	return IsLevelEnabled(globalWriters, level)
+}
+
+// ConfigureLoggers configures loggers according to the given string
+// specification, which specifies a set of modules and their associated
+// logging levels.  Loggers are colon- or semicolon-separated; each
+// module is specified as <modulename>=<level>.  White space outside of
+// module names and levels is ignored.  The root module is specified
+// with the name "<root>".
+//
+// An example specification:
+//	`<root>=ERROR; foo.bar=WARNING`
+func ConfigureLoggers(specification string) error {
+	return configureLoggers(specification, globalLoggers)
 }
