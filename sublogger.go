@@ -17,7 +17,7 @@ import (
 type SubLogger struct {
 	logger
 	*module
-	writer Writer
+	writer RecordWriter
 }
 
 // NewRootLogger creates a root logger and returns it, along with

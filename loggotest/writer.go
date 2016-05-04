@@ -6,6 +6,7 @@ package loggotest
 import (
 	"path"
 	"sync"
+	"time"
 
 	gc "gopkg.in/check.v1"
 
@@ -20,11 +21,23 @@ type Writer struct {
 }
 
 // Write saves the params as members in the LogValues struct appended to the Log array.
-func (writer *Writer) Write(rec loggo.Record) {
+func (writer *Writer) WriteRecord(rec loggo.Record) {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
 	rec.Filename = path.Base(rec.Filename)
 	writer.log = append(writer.log, rec)
+}
+
+// Write is a temporary legacy shim.
+func (writer *Writer) Write(level loggo.Level, loggerName, filename string, line int, timestamp time.Time, message string) {
+	writer.WriteRecord(loggo.Record{
+		Level:      level,
+		LoggerName: loggerName,
+		Filename:   filename,
+		Line:       line,
+		Timestamp:  timestamp,
+		Message:    message,
+	})
 }
 
 // Clear removes any saved log messages.

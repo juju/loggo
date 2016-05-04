@@ -25,7 +25,7 @@ func NewFormatter(format func(loggo.Record) string) *Formatter {
 
 // Format saves the params as members in the TestLogValues struct appended to the Log array.
 func (f *Formatter) Format(rec loggo.Record) string {
-	f.Write(rec)
+	f.WriteRecord(rec)
 	if f.format == nil {
 		return rec.Message
 	}

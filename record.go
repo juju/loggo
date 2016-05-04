@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"path/filepath"
 	"runtime"
 	"time"
 )
@@ -77,4 +78,15 @@ func NewRecordf(calldepth int, level Level, loggerName, message string, args ...
 	rec.Message = fmt.Sprintf(rec.Message, args...)
 
 	return rec
+}
+
+// String returns the default string representation of the log record.
+// The details are separated by spaces except for filename and line
+// which are separated by a colon. The timestamp is shown to second
+// resolution in UTC.
+func (rec Record) String() string {
+	ts := rec.Timestamp.In(time.UTC).Format("2006-01-02 15:04:05")
+	// Just get the basename from the filename
+	filename := filepath.Base(rec.Filename)
+	return fmt.Sprintf("%s %s %s %s:%d %s", ts, rec.Level, rec.LoggerName, filename, rec.Line, rec.Message)
 }

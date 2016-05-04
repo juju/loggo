@@ -33,7 +33,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 	}
 
 	writer := loggo.NewFormattingWriter(buf, formatter)
-	writer.Write(rec)
+	writer.WriteRecord(rec)
 
 	log := formatter.Log()
 	c.Check(log, gc.DeepEquals, []loggo.Record{rec})

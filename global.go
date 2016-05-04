@@ -10,7 +10,7 @@ import (
 func defaultWriters() map[string]MinLevelWriter {
 	return map[string]MinLevelWriter{
 		defaultWriterName: NewMinLevelWriter(
-			NewFormattingWriter(os.Stderr, &DefaultFormatter{}),
+			NewFormattingWriter(os.Stderr, nil),
 			TRACE,
 		),
 	}
@@ -54,8 +54,16 @@ func ResetWriters() {
 // ReplaceDefaultWriter is a convenience method that does the equivalent of
 // RemoveWriter and then RegisterWriter with the name "default".  The previous
 // default writer, if any is returned.
-func ReplaceDefaultWriter(writer Writer) (Writer, error) {
-	return globalWriters.replace(defaultWriterName, writer)
+func ReplaceDefaultWriter(writer Writer) (LegacyCompatibleWriter, error) {
+	var w RecordWriter
+	if writer != nil {
+		w = &legacyAdaptingWriter{writer}
+	}
+	w, err := globalWriters.replace(defaultWriterName, w)
+	if err != nil {
+		return nil, err
+	}
+	return &legacyWriterShim{w}, nil
 }
 
 // RegisterWriter adds the writer to the list of writers that get notified
@@ -63,7 +71,14 @@ func ReplaceDefaultWriter(writer Writer) (Writer, error) {
 // level that will be written, and a name for the writer.  If there is already
 // a registered writer with that name, an error is returned.
 func RegisterWriter(name string, writer Writer, minLevel Level) error {
-	return globalWriters.AddWithLevel(name, writer, minLevel)
+	if w, ok := writer.(RecordWriter); ok {
+		return globalWriters.AddWithLevel(name, w, minLevel)
+	}
+	var w RecordWriter
+	if writer != nil {
+		w = &legacyAdaptingWriter{writer}
+	}
+	return globalWriters.AddWithLevel(name, w, minLevel)
 }
 
 // RemoveWriter removes the Writer identified by 'name' and returns it.
@@ -73,7 +88,7 @@ func RemoveWriter(name string) (Writer, Level, error) {
 	if err != nil {
 		return nil, UNSPECIFIED, err
 	}
-	return registered, registered.MinLogLevel(), nil
+	return &legacyWriterShim{registered}, registered.MinLogLevel(), nil
 }
 
 // WillWrite returns whether there are any writers registered

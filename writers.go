@@ -44,7 +44,7 @@ func (ws *Writers) reset(initial map[string]MinLevelWriter) {
 // removing it).
 //
 // If there is already a writer with that name, an error is returned.
-func (ws *Writers) AddWithLevel(name string, writer Writer, minLevel Level) error {
+func (ws *Writers) AddWithLevel(name string, writer RecordWriter, minLevel Level) error {
 	if writer == nil {
 		return fmt.Errorf("Writer cannot be nil")
 	}
@@ -108,7 +108,7 @@ func (ws *Writers) removeUnlocked(name string) (MinLevelWriter, error) {
 // replace is a convenience method that does the atomic equivalent of
 // calling remove() and then add(). The previous writer, which
 // must exist, is returned.
-func (ws *Writers) replace(name string, newWriter Writer) (Writer, error) {
+func (ws *Writers) replace(name string, newWriter RecordWriter) (RecordWriter, error) {
 	if newWriter == nil {
 		return nil, fmt.Errorf("Writer cannot be nil")
 	}
@@ -134,13 +134,13 @@ func (ws *Writers) MinLogLevel() Level {
 }
 
 // Write implements Writer, sending the message to each known writer.
-func (ws *Writers) Write(rec Record) {
+func (ws *Writers) WriteRecord(rec Record) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
 	for _, writer := range ws.all {
 		if IsLevelEnabled(writer, rec.Level) {
-			writer.Write(rec)
+			writer.WriteRecord(rec)
 		}
 	}
 }

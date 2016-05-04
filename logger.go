@@ -196,7 +196,7 @@ func (logger *callLogger) LogCallf(calldepth int, level Level, message string, a
 	}
 	rec := NewRecordf(calldepth+1, level, loggerName, message, args...)
 	if logger.writer != nil {
-		logger.writer.Write(rec)
+		logger.writer.WriteRecord(rec)
 	}
 }
 
