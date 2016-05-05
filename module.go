@@ -77,6 +77,18 @@ func (module *module) ParentWithMinLogLevel() HasMinLevel {
 	return module.parent
 }
 
+// config returns the current configuration for the module.
+func (module *module) config() LoggerConfig {
+	return LoggerConfig{
+		Level: module.MinLogLevel(),
+	}
+}
+
+// applyConfig configures the logger according to the provided config.
+func (module *module) applyConfig(cfg LoggerConfig) {
+	module.setLevel(cfg.Level)
+}
+
 // setLevel sets the severity level of the given module.
 // The root module cannot be set to UNSPECIFIED level.
 func (module *module) setLevel(level Level) {
@@ -156,6 +168,22 @@ func (m *modules) resolveUnlocked(name string) *module {
 	return impl
 }
 
+// config returns the current configuration of the modules. Modules
+// with UNSPECIFIED level will not be included.
+func (m *modules) config() LoggersConfig {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	cfg := make(LoggersConfig)
+	for _, module := range m.all {
+		if module.MinLogLevel() <= UNSPECIFIED {
+			continue
+		}
+		cfg[module.Name()] = module.config()
+	}
+	return cfg
+}
+
 // resetLevels iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING.
 func (m *modules) resetLevels() {
@@ -169,15 +197,4 @@ func (m *modules) resetLevels() {
 			module.level.set(m.defaultLevel)
 		}
 	}
-}
-
-// config returns information about the modules and their logging
-// levels. The information is returned in the format expected by
-// ConfigureLoggers. Modules with UNSPECIFIED level will not
-// be included.
-func (m *modules) config() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	return loggerInfo(m.all)
 }

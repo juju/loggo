@@ -101,6 +101,23 @@ func (logger Logger) EffectiveLogLevel() Level {
 	return EffectiveMinLevel(logger.getModule())
 }
 
+// Config returns the current configuration for the Logger.
+func (logger Logger) Config() LoggerConfig {
+	cfg := logger.getModule().config()
+	logger.updateConfig(&cfg)
+	return cfg
+}
+
+// updateConfig adds any logger-specific info to the provided config.
+func (logger Logger) updateConfig(cfg *LoggerConfig) {
+	// For now there isn't any logger-specific info.
+}
+
+// ApplyConfig configures the logger according to the provided config.
+func (logger Logger) ApplyConfig(cfg LoggerConfig) {
+	logger.getModule().applyConfig(cfg)
+}
+
 // SetLogLevel sets the severity level of the given logger.
 // The root logger cannot be set to UNSPECIFIED level.
 // See EffectiveLogLevel for how this affects the
@@ -254,9 +271,13 @@ func NewLoggers(rootLevel Level, writers *Writers) *Loggers {
 // and configures loggers according to the given spec.
 func LoggersFromConfig(spec string, writers *Writers) (*Loggers, error) {
 	loggers := NewLoggers(UNSPECIFIED, writers)
-	if err := configureLoggers(spec, loggers); err != nil {
+
+	configs, err := ParseLoggersConfig(spec)
+	if err != nil {
 		return nil, err
 	}
+	loggers.ApplyConfig(configs)
+
 	loggers.m.rootLevel = loggers.Get(rootName).LogLevel()
 	return loggers, nil
 }
@@ -270,12 +291,23 @@ func (ls *Loggers) Get(name string) Logger {
 	}
 }
 
-// Config returns information about the loggers and their logging
-// levels. The information is returned in the format expected by
-// LoggersFromConfig. Loggers with UNSPECIFIED level will not
-// be included.
-func (ls *Loggers) Config() string {
-	return ls.m.config()
+// Config returns the current configuration of the Loggers. Loggers
+// with UNSPECIFIED level will not be included.
+func (ls *Loggers) Config() LoggersConfig {
+	configs := ls.m.config()
+	for name, cfg := range configs {
+		ls.Get(name).updateConfig(&cfg)
+		configs[name] = cfg
+	}
+	return configs
+}
+
+// ApplyConfig configures the loggers according to the provided configs.
+func (ls *Loggers) ApplyConfig(configs LoggersConfig) {
+	for name, cfg := range configs {
+		logger := ls.Get(name)
+		logger.ApplyConfig(cfg)
+	}
 }
 
 // resetLevels iterates through the known loggers and sets the levels

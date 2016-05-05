@@ -26,7 +26,7 @@ var (
 // ConfigureLoggers. Loggers with UNSPECIFIED level will not
 // be included.
 func LoggerInfo() string {
-	return globalLoggers.Config()
+	return globalLoggers.Config().String()
 }
 
 // GetLogger returns a Logger for the given module name,
@@ -88,5 +88,10 @@ func WillWrite(level Level) bool {
 // An example specification:
 //	`<root>=ERROR; foo.bar=WARNING`
 func ConfigureLoggers(specification string) error {
-	return configureLoggers(specification, globalLoggers)
+	configs, err := ParseLoggersConfig(specification)
+	if err != nil {
+		return err
+	}
+	globalLoggers.ApplyConfig(configs)
+	return nil
 }
