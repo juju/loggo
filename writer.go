@@ -6,63 +6,16 @@ package loggo
 import (
 	"fmt"
 	"io"
-	"time"
 )
 
 // defaultWriterName is the name of the writer default writer.
 const defaultWriterName = "default"
-
-// TODO(ericsnow) Drop legacyWriter once it's no longer used.
-
-// Writer is implemented by any recipient of log messages.
-//
-// Writer is deprecated. Use RecordWriter instead.
-type Writer legacyWriter
-
-type legacyWriter interface {
-	// Write writes a message to the Writer with the given
-	// level and module name. The filename and line hold
-	// the file name and line number of the code that is
-	// generating the log message; the time stamp holds
-	// the time the log message was generated, and
-	// message holds the log message itself.
-	Write(level Level, name, filename string, line int, timestamp time.Time, message string)
-}
-
-// LegacyCompatibleWriter is a shim to temporarily support both interfaces.
-type LegacyCompatibleWriter interface {
-	RecordWriter
-	legacyWriter
-}
 
 // RecordWriter is implemented by any recipient of log messages.
 type RecordWriter interface {
 	// WriteRecord writes a message to the Writer for the given
 	// log record.
 	WriteRecord(Record)
-}
-
-type legacyWriterShim struct {
-	RecordWriter
-}
-
-func (shim legacyWriterShim) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
-	shim.WriteRecord(Record{
-		Level:      level,
-		LoggerName: loggerName,
-		Filename:   filename,
-		Line:       line,
-		Timestamp:  timestamp,
-		Message:    message,
-	})
-}
-
-type legacyAdaptingWriter struct {
-	legacyWriter
-}
-
-func (law *legacyAdaptingWriter) WriteRecord(rec Record) {
-	law.Write(rec.Level, rec.LoggerName, rec.Filename, rec.Line, rec.Timestamp, rec.Message)
 }
 
 // MinLevelWriter is a writer that exposes its minimum log level.
@@ -96,17 +49,6 @@ func (w minLevelWriter) WriteRecord(rec Record) {
 		return
 	}
 	w.writer.WriteRecord(rec)
-}
-
-// TODO(ericsnow) Eliminate NewSimpleWriter().
-
-// NewSimpleWriter returns a new writer that writes
-// log messages to the given io.Writer formatting the
-// messages with the given formatter.
-func NewSimpleWriter(writer io.Writer, formatter LegacyFormatter) LegacyCompatibleWriter {
-	return &legacyWriterShim{
-		&formattingWriter{writer, &legacyAdaptingFormatter{formatter}},
-	}
 }
 
 // formattingWriter is a log writer that writes
