@@ -6,26 +6,7 @@ package loggo
 import (
 	"fmt"
 	"runtime"
-	"sort"
-	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
-)
-
-// Level holds a severity level.
-type Level uint32
-
-// The severity levels. Higher values are more considered more
-// important.
-const (
-	UNSPECIFIED Level = iota
-	TRACE
-	DEBUG
-	INFO
-	WARNING
-	ERROR
-	CRITICAL
 )
 
 // A Logger represents a logging module. It has an associated logging
@@ -39,205 +20,14 @@ type Logger struct {
 	impl *module
 }
 
-type module struct {
-	name   string
-	level  Level
-	parent *module
-}
-
-// Initially the modules map only contains the root module.
-var (
-	root         = &module{level: WARNING}
-	modulesMutex sync.Mutex
-	modules      = map[string]*module{
-		"": root,
+func newLogger(name string, parent *module) Logger {
+	return Logger{
+		impl: &module{
+			name:   name,
+			level:  UNSPECIFIED,
+			parent: parent,
+		},
 	}
-)
-
-func (level Level) String() string {
-	switch level {
-	case UNSPECIFIED:
-		return "UNSPECIFIED"
-	case TRACE:
-		return "TRACE"
-	case DEBUG:
-		return "DEBUG"
-	case INFO:
-		return "INFO"
-	case WARNING:
-		return "WARNING"
-	case ERROR:
-		return "ERROR"
-	case CRITICAL:
-		return "CRITICAL"
-	}
-	return "<unknown>"
-}
-
-// get atomically gets the value of the given level.
-func (level *Level) get() Level {
-	return Level(atomic.LoadUint32((*uint32)(level)))
-}
-
-// set atomically sets the value of the receiver
-// to the given level.
-func (level *Level) set(newLevel Level) {
-	atomic.StoreUint32((*uint32)(level), uint32(newLevel))
-}
-
-// getLoggerInternal assumes that the modulesMutex is locked.
-func getLoggerInternal(name string) Logger {
-	impl, found := modules[name]
-	if found {
-		return Logger{impl}
-	}
-	parentName := ""
-	if i := strings.LastIndex(name, "."); i >= 0 {
-		parentName = name[0:i]
-	}
-	parent := getLoggerInternal(parentName).impl
-	impl = &module{name, UNSPECIFIED, parent}
-	modules[name] = impl
-	return Logger{impl}
-}
-
-// GetLogger returns a Logger for the given module name,
-// creating it and its parents if necessary.
-func GetLogger(name string) Logger {
-	// Lowercase the module name, and look for it in the modules map.
-	name = strings.ToLower(name)
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	return getLoggerInternal(name)
-}
-
-// LoggerInfo returns information about the configured loggers and their logging
-// levels.  The information is returned in the format expected by
-// ConfigureModules. Loggers with UNSPECIFIED level will not
-// be included.
-func LoggerInfo() string {
-	output := []string{}
-	// output in alphabetical order.
-	keys := []string{}
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	for key := range modules {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, name := range keys {
-		mod := modules[name]
-		severity := mod.level.get()
-		if severity == UNSPECIFIED {
-			continue
-		}
-		output = append(output, fmt.Sprintf("%s=%s", mod.Name(), severity))
-	}
-	return strings.Join(output, ";")
-}
-
-// ParseConfigurationString parses a logger configuration string into a map of
-// logger names and their associated log level. This method is provided to
-// allow other programs to pre-validate a configuration string rather than
-// just calling ConfigureLoggers.
-//
-// Loggers are colon- or semicolon-separated; each module is specified as
-// <modulename>=<level>.  White space outside of module names and levels is
-// ignored.  The root module is specified with the name "<root>".
-//
-// As a special case, a log level may be specified on its own.
-// This is equivalent to specifying the level of the root module,
-// so "DEBUG" is equivalent to `<root>=DEBUG`
-//
-// An example specification:
-//	`<root>=ERROR; foo.bar=WARNING`
-func ParseConfigurationString(specification string) (map[string]Level, error) {
-	levels := make(map[string]Level)
-	if level, ok := ParseLevel(specification); ok {
-		levels[""] = level
-		return levels, nil
-	}
-	values := strings.FieldsFunc(specification, func(r rune) bool { return r == ';' || r == ':' })
-	for _, value := range values {
-		s := strings.SplitN(value, "=", 2)
-		if len(s) < 2 {
-			return nil, fmt.Errorf("logger specification expected '=', found %q", value)
-		}
-		name := strings.TrimSpace(s[0])
-		levelStr := strings.TrimSpace(s[1])
-		if name == "" || levelStr == "" {
-			return nil, fmt.Errorf("logger specification %q has blank name or level", value)
-		}
-		if name == "<root>" {
-			name = ""
-		}
-		level, ok := ParseLevel(levelStr)
-		if !ok {
-			return nil, fmt.Errorf("unknown severity level %q", levelStr)
-		}
-		levels[name] = level
-	}
-	return levels, nil
-}
-
-// ConfigureLoggers configures loggers according to the given string
-// specification, which specifies a set of modules and their associated
-// logging levels.  Loggers are colon- or semicolon-separated; each
-// module is specified as <modulename>=<level>.  White space outside of
-// module names and levels is ignored.  The root module is specified
-// with the name "<root>".
-//
-// An example specification:
-//	`<root>=ERROR; foo.bar=WARNING`
-func ConfigureLoggers(specification string) error {
-	if specification == "" {
-		return nil
-	}
-	levels, err := ParseConfigurationString(specification)
-	if err != nil {
-		return err
-	}
-	for name, level := range levels {
-		GetLogger(name).SetLogLevel(level)
-	}
-	return nil
-}
-
-// ResetLogging iterates through the known modules and sets the levels of all
-// to UNSPECIFIED, except for <root> which is set to WARNING.
-func ResetLoggers() {
-	modulesMutex.Lock()
-	defer modulesMutex.Unlock()
-	for name, module := range modules {
-		if name == "" {
-			module.level.set(WARNING)
-		} else {
-			module.level.set(UNSPECIFIED)
-		}
-	}
-}
-
-// ParseLevel converts a string representation of a logging level to a
-// Level. It returns the level and whether it was valid or not.
-func ParseLevel(level string) (Level, bool) {
-	level = strings.ToUpper(level)
-	switch level {
-	case "UNSPECIFIED":
-		return UNSPECIFIED, true
-	case "TRACE":
-		return TRACE, true
-	case "DEBUG":
-		return DEBUG, true
-	case "INFO":
-		return INFO, true
-	case "WARN", "WARNING":
-		return WARNING, true
-	case "ERROR":
-		return ERROR, true
-	case "CRITICAL":
-		return CRITICAL, true
-	}
-	return UNSPECIFIED, false
 }
 
 func (logger Logger) getModule() *module {
@@ -255,26 +45,6 @@ func (logger Logger) Name() string {
 // LogLevel returns the configured log level of the logger.
 func (logger Logger) LogLevel() Level {
 	return logger.getModule().level.get()
-}
-
-func (module *module) getEffectiveLogLevel() Level {
-	// Note: the root module is guaranteed to have a
-	// specified logging level, so acts as a suitable sentinel
-	// for this loop.
-	for {
-		if level := module.level.get(); level != UNSPECIFIED {
-			return level
-		}
-		module = module.parent
-	}
-	panic("unreachable")
-}
-
-func (module *module) Name() string {
-	if module.name == "" {
-		return "<root>"
-	}
-	return module.name
 }
 
 // EffectiveLogLevel returns the effective log level of
