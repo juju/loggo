@@ -39,12 +39,14 @@ func (s *LoggerSuite) TestRootLogger(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestModuleName(c *gc.C) {
-	logger := loggo.NewLogger("loggo.testing", nil)
+	var parent loggo.Logger
+	logger, _ := loggo.NewLogger("loggo.testing", parent)
 	c.Assert(logger.Name(), gc.Equals, "loggo.testing")
 }
 
 func (s *LoggerSuite) TestSetLevel(c *gc.C) {
-	logger := loggo.NewLogger("testing", nil)
+	var parent loggo.Logger
+	logger, _ := loggo.NewLogger("testing", parent)
 
 	c.Assert(logger.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
 	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.WARNING)
@@ -108,17 +110,18 @@ func (s *LoggerSuite) TestSetLevel(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestModuleLowered(c *gc.C) {
-	logger1 := loggo.NewLogger("TESTING.MODULE", nil)
-	logger2 := loggo.NewLogger("Testing", nil)
+	var parent loggo.Logger
+	logger1, _ := loggo.NewLogger("TESTING.MODULE", parent)
+	logger2, _ := loggo.NewLogger("Testing", parent)
 
 	c.Assert(logger1.Name(), gc.Equals, "testing.module")
 	c.Assert(logger2.Name(), gc.Equals, "testing")
 }
 
 func (s *LoggerSuite) TestLevelsInherited(c *gc.C) {
-	root := loggo.NewLogger("", nil)
-	first := loggo.NewLoggerWithParent("first", root, nil)
-	second := loggo.NewLoggerWithParent("first.second", first, nil)
+	root, _ := loggo.NewRootLogger()
+	first, _ := loggo.NewLogger("first", root)
+	second, _ := loggo.NewLogger("first.second", first)
 
 	root.SetLogLevel(loggo.ERROR)
 	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
@@ -154,7 +157,7 @@ func (s *LoggerSuite) TestLevelsInherited(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestLoggingStrings(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test")
+	logger, writer := loggotest.TraceLogger()
 
 	logger.Infof("simple")
 	loggotest.CheckLastMessage(c, writer, "simple")
@@ -169,8 +172,70 @@ func (s *LoggerSuite) TestLoggingStrings(c *gc.C) {
 	loggotest.CheckLastMessage(c, writer, "missing %s")
 }
 
+func (s *LoggerSuite) TestLoggingLimitWarning(c *gc.C) {
+	logger, writer := loggotest.TraceLogger()
+	logger.SetLogLevel(loggo.WARNING)
+
+	start := time.Now()
+	logger.Criticalf("Something critical.")
+	logger.Errorf("An error.")
+	logger.Warningf("A warning message")
+	logger.Infof("Info message")
+	logger.Tracef("Trace the function")
+	end := time.Now()
+
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 3)
+	c.Assert(log[0].Level, gc.Equals, loggo.CRITICAL)
+	c.Assert(log[0].Message, gc.Equals, "Something critical.")
+	c.Assert(log[0].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[1].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[1].Message, gc.Equals, "An error.")
+	c.Assert(log[1].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[2].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[2].Message, gc.Equals, "A warning message")
+	c.Assert(log[2].Timestamp, loggotest.Between(start, end))
+}
+
+func (s *LoggerSuite) TestLoggingLimitTrace(c *gc.C) {
+	logger, writer := loggotest.TraceLogger()
+	logger.SetLogLevel(loggo.TRACE)
+
+	start := time.Now()
+	logger.Criticalf("Something critical.")
+	logger.Errorf("An error.")
+	logger.Warningf("A warning message")
+	logger.Infof("Info message")
+	logger.Tracef("Trace the function")
+	end := time.Now()
+
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 5)
+	c.Assert(log[0].Level, gc.Equals, loggo.CRITICAL)
+	c.Assert(log[0].Message, gc.Equals, "Something critical.")
+	c.Assert(log[0].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[1].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[1].Message, gc.Equals, "An error.")
+	c.Assert(log[1].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[2].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[2].Message, gc.Equals, "A warning message")
+	c.Assert(log[2].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[3].Level, gc.Equals, loggo.INFO)
+	c.Assert(log[3].Message, gc.Equals, "Info message")
+	c.Assert(log[3].Timestamp, loggotest.Between(start, end))
+
+	c.Assert(log[4].Level, gc.Equals, loggo.TRACE)
+	c.Assert(log[4].Message, gc.Equals, "Trace the function")
+	c.Assert(log[4].Timestamp, loggotest.Between(start, end))
+}
+
 func (s *LoggerSuite) TestLocationCapture(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test")
+	logger, writer := loggotest.TraceLogger()
 
 	logger.Criticalf("critical message") //tag critical-location
 	logger.Errorf("error message")       //tag error-location
@@ -195,7 +260,7 @@ func (s *LoggerSuite) TestLocationCapture(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	logger, writer := loggotest.TraceLogger()
 
 	logger.Logf(loggo.UNSPECIFIED, "message")
 	c.Assert(writer.Log(), gc.HasLen, 0)
@@ -208,7 +273,7 @@ func (s *LoggerSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestMessageFormatting(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	logger, writer := loggotest.TraceLogger()
 
 	logger.Logf(loggo.INFO, "some %s included", "formatting")
 
@@ -219,8 +284,13 @@ func (s *LoggerSuite) TestMessageFormatting(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestNoWriters(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	writer := &loggotest.Writer{}
 	loggo.RemoveWriter("default")
+	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
+	c.Assert(err, gc.IsNil)
+	// Use a non-global logger with no writers set.
+	logger, _ := loggo.NewRootLogger()
+	logger.SetLogLevel(loggo.TRACE)
 
 	logger.Warningf("just a simple warning")
 
@@ -228,9 +298,10 @@ func (s *LoggerSuite) TestNoWriters(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestWritingLimitWarning(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
-	loggo.RemoveWriter("default")
-	err := loggo.RegisterWriter("test", writer, loggo.WARNING)
+	logger, writers := loggo.NewRootLogger()
+	logger.SetLogLevel(loggo.TRACE)
+	writer := &loggotest.Writer{}
+	err := writers.AddWithLevel("test", writer, loggo.WARNING)
 	c.Assert(err, gc.IsNil)
 
 	start := time.Now()
@@ -257,9 +328,10 @@ func (s *LoggerSuite) TestWritingLimitWarning(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestWritingLimitTrace(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
-	loggo.RemoveWriter("default")
-	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
+	logger, writers := loggo.NewRootLogger()
+	logger.SetLogLevel(loggo.TRACE)
+	writer := &loggotest.Writer{}
+	err := writers.AddWithLevel("test", writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
 
 	start := time.Now()
@@ -294,19 +366,19 @@ func (s *LoggerSuite) TestWritingLimitTrace(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestMultipleWriters(c *gc.C) {
-	logger, _ := loggotest.TraceLogger("test.writer")
-	loggo.RemoveWriter("default")
+	logger, writers := loggo.NewRootLogger()
+	logger.SetLogLevel(loggo.TRACE)
 	errorWriter := &loggotest.Writer{}
-	err := loggo.RegisterWriter("error", errorWriter, loggo.ERROR)
+	err := writers.AddWithLevel("error", errorWriter, loggo.ERROR)
 	c.Assert(err, gc.IsNil)
 	warningWriter := &loggotest.Writer{}
-	err = loggo.RegisterWriter("warning", warningWriter, loggo.WARNING)
+	err = writers.AddWithLevel("warning", warningWriter, loggo.WARNING)
 	c.Assert(err, gc.IsNil)
 	infoWriter := &loggotest.Writer{}
-	err = loggo.RegisterWriter("info", infoWriter, loggo.INFO)
+	err = writers.AddWithLevel("info", infoWriter, loggo.INFO)
 	c.Assert(err, gc.IsNil)
 	traceWriter := &loggotest.Writer{}
-	err = loggo.RegisterWriter("trace", traceWriter, loggo.TRACE)
+	err = writers.AddWithLevel("trace", traceWriter, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
 
 	logger.Errorf("An error.")

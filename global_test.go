@@ -107,6 +107,84 @@ func (*GlobalLoggersSuite) TestLevelsInherited(c *gc.C) {
 	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.INFO)
 }
 
+var configureLoggersTests = []struct {
+	spec string
+	info string
+	err  string
+}{{
+	spec: "",
+	info: "<root>=WARNING",
+}, {
+	spec: "<root>=UNSPECIFIED",
+	info: "<root>=WARNING",
+}, {
+	spec: "<root>=DEBUG",
+	info: "<root>=DEBUG",
+}, {
+	spec: "TRACE",
+	info: "<root>=TRACE",
+}, {
+	spec: "test.module=debug",
+	info: "<root>=WARNING;test.module=DEBUG",
+}, {
+	spec: "module=info; sub.module=debug; other.module=warning",
+	info: "<root>=WARNING;module=INFO;other.module=WARNING;sub.module=DEBUG",
+}, {
+	spec: "  foo.bar \t\r\n= \t\r\nCRITICAL \t\r\n; \t\r\nfoo \r\t\n = DEBUG",
+	info: "<root>=WARNING;foo=DEBUG;foo.bar=CRITICAL",
+}, {
+	spec: "foo;bar",
+	info: "<root>=WARNING",
+	err:  `logger entry expected '=', found "foo"`,
+}, {
+	spec: "=foo",
+	info: "<root>=WARNING",
+	err:  `logger entry "=foo" has blank name`,
+}, {
+	spec: "foo=",
+	info: "<root>=WARNING",
+	err:  `logger entry "foo=" has blank config`,
+}, {
+	spec: "=",
+	info: "<root>=WARNING",
+	err:  `logger entry "=" has blank name`,
+}, {
+	spec: "foo=unknown",
+	info: "<root>=WARNING",
+	err:  `unknown log level "unknown"`,
+}, {
+	// Test that nothing is changed even when the
+	// first part of the specification parses ok.
+	spec: "module=info; foo=unknown",
+	info: "<root>=WARNING",
+	err:  `unknown log level "unknown"`,
+}}
+
+func (s *GlobalLoggersSuite) TestConfigureLoggers(c *gc.C) {
+	for i, test := range configureLoggersTests {
+		c.Logf("test %d: %q", i, test.spec)
+		loggo.ResetLoggers()
+		err := loggo.ConfigureLoggers(test.spec)
+		c.Check(loggo.LoggerInfo(), gc.Equals, test.info)
+		if test.err != "" {
+			c.Assert(err, gc.ErrorMatches, test.err)
+			continue
+		}
+		c.Assert(err, gc.IsNil)
+
+		// Test that it's idempotent.
+		err = loggo.ConfigureLoggers(test.spec)
+		c.Assert(err, gc.IsNil)
+		c.Assert(loggo.LoggerInfo(), gc.Equals, test.info)
+
+		// Test that calling ConfigureLoggers with the
+		// output of LoggerInfo works too.
+		err = loggo.ConfigureLoggers(test.info)
+		c.Assert(err, gc.IsNil)
+		c.Assert(loggo.LoggerInfo(), gc.Equals, test.info)
+	}
+}
+
 type GlobalWritersSuite struct {
 	logger loggo.Logger
 	writer *loggotest.Writer
@@ -123,7 +201,23 @@ func (s *GlobalWritersSuite) TearDownTest(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesDefault(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	writer := &loggotest.Writer{}
+	_, err := loggo.ReplaceDefaultWriter(writer)
+	c.Assert(err, gc.IsNil)
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
+
+	logger.Infof("message")
+
+	loggotest.CheckLastMessage(c, writer, "message")
+}
+
+func (s *GlobalWritersSuite) TestLoggerWriterRegisteredLater(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
+	_, err := loggo.ReplaceDefaultWriter(writer)
+	c.Assert(err, gc.IsNil)
 
 	logger.Infof("message")
 
@@ -131,21 +225,26 @@ func (s *GlobalWritersSuite) TestLoggerUsesDefault(c *gc.C) {
 }
 
 func (s *GlobalWritersSuite) TestLoggerUsesMultiple(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
-	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
+	writer := &loggotest.Writer{}
+	_, err := loggo.ReplaceDefaultWriter(writer)
 	c.Assert(err, gc.IsNil)
+	err = loggo.RegisterWriter("test", writer, loggo.TRACE)
+	c.Assert(err, gc.IsNil)
+	logger := loggo.GetLogger("test.writer")
+	logger.SetLogLevel(loggo.TRACE)
 
 	logger.Infof("message")
 
 	log := writer.Log()
-	c.Check(log, gc.HasLen, 2)
+	c.Assert(log, gc.HasLen, 2)
 	c.Check(log[0].Message, gc.Equals, "message")
 	c.Check(log[1].Message, gc.Equals, "message")
 }
 
 func (s *GlobalWritersSuite) TestLoggerRespectsWriterLevel(c *gc.C) {
-	logger, writer := loggotest.TraceLogger("test.writer")
+	logger := loggo.GetLogger("test.writer")
 	loggo.RemoveWriter("default")
+	writer := &loggotest.Writer{}
 	err := loggo.RegisterWriter("test", writer, loggo.ERROR)
 	c.Assert(err, gc.IsNil)
 
@@ -162,14 +261,14 @@ func (*GlobalWritersSuite) TestRemoveDefaultWriter(c *gc.C) {
 
 	// Trying again fails.
 	defaultWriter, level, err = loggo.RemoveWriter("default")
-	c.Assert(err, gc.ErrorMatches, `Writer "default" is not registered`)
+	c.Assert(err, gc.ErrorMatches, `Writer "default" is not recognized`)
 	c.Assert(level, gc.Equals, loggo.UNSPECIFIED)
 	c.Assert(defaultWriter, gc.IsNil)
 }
 
 func (*GlobalWritersSuite) TestRegisterWriterExistingName(c *gc.C) {
 	err := loggo.RegisterWriter("default", &loggotest.Writer{}, loggo.INFO)
-	c.Assert(err, gc.ErrorMatches, `there is already a Writer registered with the name "default"`)
+	c.Assert(err, gc.ErrorMatches, `there is already a Writer with the name "default"`)
 }
 
 func (*GlobalWritersSuite) TestRegisterNilWriter(c *gc.C) {
@@ -200,7 +299,7 @@ func (*GlobalWritersSuite) TestReplaceDefaultWriterNoDefault(c *gc.C) {
 	loggo.RemoveWriter("default")
 	oldWriter, err := loggo.ReplaceDefaultWriter(&loggotest.Writer{})
 	c.Assert(oldWriter, gc.IsNil)
-	c.Assert(err, gc.ErrorMatches, `there is no "default" writer`)
+	c.Assert(err, gc.ErrorMatches, `Writer "default" is not recognized`)
 }
 
 func (s *GlobalWritersSuite) TestWillWrite(c *gc.C) {
@@ -229,7 +328,8 @@ var _ = gc.Suite(&GlobalBenchmarksSuite{})
 
 func (s *GlobalBenchmarksSuite) SetUpTest(c *gc.C) {
 	loggo.ResetLoggers()
-	s.logger, s.writer = loggotest.TraceLogger("test.writer")
+	s.logger = loggo.GetLogger("test.writer")
+	s.writer = &loggotest.Writer{}
 	loggo.RemoveWriter("default")
 	err := loggo.RegisterWriter("test", s.writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)

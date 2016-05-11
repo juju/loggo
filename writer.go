@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// defaultWriterName is the name of the writer default writer.
+const defaultWriterName = "default"
+
 // Writer is implemented by any recipient of log messages.
 type Writer interface {
 	// Write writes a message to the Writer with the given
@@ -20,9 +23,37 @@ type Writer interface {
 	Write(level Level, name, filename string, line int, timestamp time.Time, message string)
 }
 
-type registeredWriter struct {
+// MinLevelWriter is a writer that exposes its minimum log level.
+type MinLevelWriter interface {
+	Writer
+	HasMinLevel
+}
+
+type minLevelWriter struct {
 	writer Writer
 	level  Level
+}
+
+// NewMinLevelWriter returns a MinLevelWriter that wraps the given
+// writer with the provided min log level.
+func NewMinLevelWriter(writer Writer, minLevel Level) MinLevelWriter {
+	return &minLevelWriter{
+		writer: writer,
+		level:  minLevel,
+	}
+}
+
+// MinLogLevel returns the writer's log level.
+func (w minLevelWriter) MinLogLevel() Level {
+	return w.level
+}
+
+// Write writes the log record.
+func (w minLevelWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
+	if !IsLevelEnabled(&w, level) {
+		return
+	}
+	w.writer.Write(level, module, filename, line, timestamp, message)
 }
 
 type simpleWriter struct {

@@ -65,6 +65,8 @@ func (writer *Writer) Log() []LogValues {
 func CheckLastMessage(c *gc.C, writer *Writer, expected string) {
 	log := writer.Log()
 	writer.Clear()
-	obtained := log[len(log)-1].Message
-	c.Check(obtained, gc.Equals, expected)
+	if c.Check(len(log) > 0, gc.Equals, true) {
+		obtained := log[len(log)-1].Message
+		c.Check(obtained, gc.Equals, expected)
+	}
 }
