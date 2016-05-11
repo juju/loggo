@@ -26,6 +26,8 @@ import (
 //
 // An example specification:
 //	`<root>=ERROR; foo.bar=WARNING`
+//
+// ParseConfigurationString is deprecated. Use ParseLoggersConfig instead.
 func ParseConfigurationString(specification string) (map[string]Level, error) {
 	configs, err := ParseLoggersConfig(specification)
 	if err != nil {
@@ -40,6 +42,8 @@ func ParseConfigurationString(specification string) (map[string]Level, error) {
 
 // LegacyFormatter defines the single method Format, which takes the logging
 // information, and converts it to a string.
+//
+// LegacyFormatter is deprecated. Use Formatter instead.
 type LegacyFormatter interface {
 	Format(level Level, loggerName, filename string, line int, timestamp time.Time, message string) string
 }
@@ -88,6 +92,8 @@ type legacyWriter interface {
 }
 
 // LegacyCompatibleWriter is a shim to temporarily support both interfaces.
+//
+// LegacyCompatibleWriter only exists to support transitioning to RecordWriter.
 type LegacyCompatibleWriter interface {
 	RecordWriter
 	legacyWriter
