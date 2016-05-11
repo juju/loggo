@@ -11,6 +11,33 @@ import (
 // TODO(ericsnow) The contents of this file can go away as soon as we
 // stop worrying about breaking compatibility.
 
+// ParseConfigurationString parses a logger configuration string into a map of
+// logger names and their associated log level. This method is provided to
+// allow other programs to pre-validate a configuration string rather than
+// just calling ConfigureLoggers.
+//
+// Loggers are colon- or semicolon-separated; each module is specified as
+// <modulename>=<level>.  White space outside of module names and levels is
+// ignored.  The root module is specified with the name "<root>".
+//
+// As a special case, a log level may be specified on its own.
+// This is equivalent to specifying the level of the root module,
+// so "DEBUG" is equivalent to `<root>=DEBUG`
+//
+// An example specification:
+//	`<root>=ERROR; foo.bar=WARNING`
+func ParseConfigurationString(specification string) (map[string]Level, error) {
+	configs, err := ParseLoggersConfig(specification)
+	if err != nil {
+		return nil, err
+	}
+	levels := make(map[string]Level)
+	for name, cfg := range configs {
+		levels[name] = cfg.Level
+	}
+	return levels, nil
+}
+
 // LegacyFormatter defines the single method Format, which takes the logging
 // information, and converts it to a string.
 type LegacyFormatter interface {
