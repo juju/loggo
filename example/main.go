@@ -28,12 +28,16 @@ func main() {
 	FirstError("first error")
 	FirstWarning("first warning")
 	FirstInfo("first info")
+	FirstDebug("first debug")
 	FirstTrace("first trace")
 
-	SecondCritical("first critical")
-	SecondError("first error")
-	SecondWarning("first warning")
-	SecondInfo("first info")
-	SecondTrace("first trace")
+	loggo.ReplaceDefaultWriter(loggo.NewSimpleWriter(os.Stderr, &loggo.ColorFormatter{}))
+
+	SecondCritical("second critical")
+	SecondError("second error")
+	SecondWarning("second warning")
+	SecondInfo("second info")
+	SecondDebug("second debug")
+	SecondTrace("second trace")
 
 }

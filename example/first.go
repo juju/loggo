@@ -22,6 +22,10 @@ func FirstInfo(message string) {
 	first.Infof(message)
 }
 
+func FirstDebug(message string) {
+	first.Debugf(message)
+}
+
 func FirstTrace(message string) {
 	first.Tracef(message)
 }

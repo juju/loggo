@@ -158,6 +158,33 @@ resolution in UTC.
 
 
 
+## type ColorFormatter
+``` go
+type ColorFormatter struct{}
+```
+ColorFormatter provides a compact formatter with colored output, ideal for terminals
+
+
+
+
+
+
+
+
+
+
+
+### func (\*ColorFormatter) Format
+``` go
+func (*ColorFormatter) Format(level Level, module, filename string, line int, timestamp time.Time, message string) string
+```
+Format returns the parameters separated by spaces except for filename and
+line which are separated by a colon.  The time is shown to second
+resolution in UTC.
+
+
+
+
 ## type Formatter
 ``` go
 type Formatter interface {
