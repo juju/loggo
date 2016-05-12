@@ -58,7 +58,7 @@ func (ls *Loggers) Config() LoggersConfig {
 func (ls *Loggers) ApplyConfig(configs LoggersConfig) {
 	for name, cfg := range configs {
 		logger := ls.Get(name)
-		logger.ApplyConfig(cfg)
+		logger.applyConfig(cfg)
 	}
 }
 

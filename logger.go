@@ -90,19 +90,8 @@ func (logger Logger) LogLevel() Level {
 	return logger.getModule().MinLogLevel()
 }
 
-// EffectiveLogLevel returns the effective min log level of
-// the receiver - that is, messages with a lesser severity
-// level will be discarded.
-//
-// If the log level of the receiver is unspecified,
-// it will be taken from the effective log level of its
-// parent.
-func (logger Logger) EffectiveLogLevel() Level {
-	return EffectiveMinLevel(logger.getModule())
-}
-
-// Config returns the current configuration for the Logger.
-func (logger Logger) Config() LoggerConfig {
+// config returns the current configuration for the Logger.
+func (logger Logger) config() LoggerConfig {
 	cfg := logger.getModule().config()
 	logger.updateConfig(&cfg)
 	return cfg
@@ -113,8 +102,8 @@ func (logger Logger) updateConfig(cfg *LoggerConfig) {
 	// For now there isn't any logger-specific info.
 }
 
-// ApplyConfig configures the logger according to the provided config.
-func (logger Logger) ApplyConfig(cfg LoggerConfig) {
+// applyConfig configures the logger according to the provided config.
+func (logger Logger) applyConfig(cfg LoggerConfig) {
 	logger.getModule().applyConfig(cfg)
 }
 
@@ -213,6 +202,20 @@ func (logger Logger) Debugf(message string, args ...interface{}) {
 // Tracef logs the printf-formatted message at trace level.
 func (logger Logger) Tracef(message string, args ...interface{}) {
 	logger.Logf(TRACE, message, args...)
+}
+
+// TODO(ericsnow) Everything below here is unnecessary now and should
+// be deprecated.
+
+// EffectiveLogLevel returns the effective min log level of
+// the receiver - that is, messages with a lesser severity
+// level will be discarded.
+//
+// If the log level of the receiver is unspecified,
+// it will be taken from the effective log level of its
+// parent.
+func (logger Logger) EffectiveLogLevel() Level {
+	return EffectiveMinLevel(logger.getModule())
 }
 
 // IsLevelEnabled returns whether debugging is enabled
