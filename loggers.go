@@ -30,8 +30,13 @@ func LoggersFromConfig(spec string, writers *Writers) (*Loggers, error) {
 	}
 	loggers.ApplyConfig(configs)
 
-	loggers.m.rootLevel = loggers.Get(rootName).MinLogLevel()
+	loggers.m.rootLevel = loggers.Root().MinLogLevel()
 	return loggers, nil
+}
+
+// Root returns the root logger.
+func (ls *Loggers) Root() SubLogger {
+	return ls.Get(rootName)
 }
 
 // Get returns a logger for the given module name, creating it and
