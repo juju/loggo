@@ -15,12 +15,12 @@ const defaultWriterName = "default"
 // Writer is implemented by any recipient of log messages.
 type Writer interface {
 	// Write writes a message to the Writer with the given
-	// level and module name. The filename and line hold
+	// level and logger name. The filename and line hold
 	// the file name and line number of the code that is
 	// generating the log message; the time stamp holds
 	// the time the log message was generated, and
 	// message holds the log message itself.
-	Write(level Level, name, filename string, line int, timestamp time.Time, message string)
+	Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string)
 }
 
 // MinLevelWriter is a writer that exposes its minimum log level.
@@ -49,11 +49,11 @@ func (w minLevelWriter) MinLogLevel() Level {
 }
 
 // Write writes the log record.
-func (w minLevelWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
+func (w minLevelWriter) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
 	if !IsLevelEnabled(&w, level) {
 		return
 	}
-	w.writer.Write(level, module, filename, line, timestamp, message)
+	w.writer.Write(level, loggerName, filename, line, timestamp, message)
 }
 
 type simpleWriter struct {
@@ -68,7 +68,7 @@ func NewSimpleWriter(writer io.Writer, formatter Formatter) Writer {
 	return &simpleWriter{writer, formatter}
 }
 
-func (simple *simpleWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
-	logLine := simple.formatter.Format(level, module, filename, line, timestamp, message)
+func (simple *simpleWriter) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
+	logLine := simple.formatter.Format(level, loggerName, filename, line, timestamp, message)
 	fmt.Fprintln(simple.writer, logLine)
 }

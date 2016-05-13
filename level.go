@@ -111,7 +111,7 @@ func EffectiveMinLevel(leveler HasMinLevel) Level {
 	if level == UNSPECIFIED {
 		// Get the level from the parent, if there is one.
 		leveler, ok := leveler.(HasParentWithMinLevel)
-		if ok {
+		if ok && leveler != nil {
 			if parent := leveler.ParentWithMinLogLevel(); parent != nil {
 				// We might consider guarding against cycles here...
 				level = EffectiveMinLevel(parent)

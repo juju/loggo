@@ -11,6 +11,9 @@ import (
 
 // LoggerConfig holds the configuration for a single logger.
 type LoggerConfig struct {
+	// Name is the logger's name.
+	Name string
+
 	// Level is the log level that should be used by the logger.
 	Level Level
 }
@@ -26,6 +29,9 @@ func ParseLoggerConfig(spec string) (LoggerConfig, error) {
 		return cfg, fmt.Errorf("logger config is blank")
 	}
 
+	// TODO(ericsnow) Get the name.  We need to sort out backward
+	// compability first.
+
 	levelStr := spec // For now level is the only thing in the spec.
 	level, ok := ParseLevel(levelStr)
 	if !ok {
@@ -39,6 +45,8 @@ func ParseLoggerConfig(spec string) (LoggerConfig, error) {
 // String returns a logger configuration string that may be parsed
 // using ParseLoggerConfig or ParseLoggersConfig().
 func (cfg LoggerConfig) String() string {
+	// TODO(ericsnow) Include the name.  We need to sort out backward
+	// compability first.
 	return fmt.Sprintf("%s", cfg.Level)
 }
 
@@ -51,9 +59,9 @@ func (configs LoggersConfig) String() string {
 	// output in alphabetical order.
 	names := []string{}
 	for name := range configs {
-		if name == rootName {
+		if name == rootModuleName {
 			// This could potentially result in a duplicate entry...
-			name = rootString
+			name = rootName
 		}
 		names = append(names, name)
 	}
@@ -99,7 +107,7 @@ func ParseLoggersConfig(spec string) (LoggersConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		return LoggersConfig{rootName: cfg}, nil
+		return LoggersConfig{rootModuleName: cfg}, nil
 	}
 
 	configs := make(LoggersConfig)
@@ -120,14 +128,14 @@ func parseConfigEntry(entry string) (string, LoggerConfig, error) {
 	if len(pair) < 2 {
 		return "", cfg, fmt.Errorf("logger entry expected '=', found %q", entry)
 	}
-	name, spec := rootName, entry
+	name, spec := rootModuleName, entry
 	if len(pair) == 2 {
 		name, spec = strings.TrimSpace(pair[0]), strings.TrimSpace(pair[1])
 		if name == "" {
 			return "", cfg, fmt.Errorf("logger entry %q has blank name", entry)
 		}
-		if name == rootString {
-			name = rootName
+		if name == rootName {
+			name = rootModuleName
 		}
 	}
 	if spec == "" {

@@ -28,132 +28,68 @@ func (s *LoggerSuite) TearDownSuite(c *gc.C) {
 	loggo.ResetLoggers()
 }
 
-func (s *LoggerSuite) TestRootLogger(c *gc.C) {
-	root := loggo.Logger{}
-	c.Check(root.Name(), gc.Equals, "<root>")
-	c.Assert(root.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(root.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(root.IsInfoEnabled(), gc.Equals, false)
-	c.Assert(root.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(root.IsTraceEnabled(), gc.Equals, false)
-}
-
-func (s *LoggerSuite) TestModuleName(c *gc.C) {
-	var parent loggo.Logger
-	logger, _ := loggo.NewLogger("loggo.testing", parent)
-	c.Assert(logger.Name(), gc.Equals, "loggo.testing")
-}
-
 func (s *LoggerSuite) TestSetLevel(c *gc.C) {
-	var parent loggo.Logger
-	logger, _ := loggo.NewLogger("testing", parent)
+	logger := loggo.NewLogger(nil)
 
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.WARNING)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, false)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.UNSPECIFIED)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.UNSPECIFIED)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, true)
 	logger.SetLogLevel(loggo.TRACE)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.TRACE)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.TRACE)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, true)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, true)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, true)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.TRACE)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.TRACE)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, true)
 	logger.SetLogLevel(loggo.DEBUG)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, true)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, true)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.DEBUG)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.DEBUG)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, false)
 	logger.SetLogLevel(loggo.INFO)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.INFO)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.INFO)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, true)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.INFO)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.INFO)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, false)
 	logger.SetLogLevel(loggo.WARNING)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.WARNING)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.WARNING)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, true)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, false)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.WARNING)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.WARNING)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, false)
 	logger.SetLogLevel(loggo.ERROR)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, true)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, false)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, false)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.ERROR)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.ERROR)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, true)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, false)
 	// This is added for completeness, but not really expected to be used.
 	logger.SetLogLevel(loggo.CRITICAL)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.CRITICAL)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.CRITICAL)
-	c.Assert(logger.IsErrorEnabled(), gc.Equals, false)
-	c.Assert(logger.IsWarningEnabled(), gc.Equals, false)
-	c.Assert(logger.IsInfoEnabled(), gc.Equals, false)
-	c.Assert(logger.IsDebugEnabled(), gc.Equals, false)
-	c.Assert(logger.IsTraceEnabled(), gc.Equals, false)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.CRITICAL)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.CRITICAL)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.ERROR), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.WARNING), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.INFO), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.DEBUG), gc.Equals, false)
+	c.Assert(loggo.IsLevelEnabled(logger, loggo.TRACE), gc.Equals, false)
 	logger.SetLogLevel(loggo.UNSPECIFIED)
-	c.Assert(logger.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(logger.EffectiveLogLevel(), gc.Equals, loggo.WARNING)
-}
-
-func (s *LoggerSuite) TestModuleLowered(c *gc.C) {
-	var parent loggo.Logger
-	logger1, _ := loggo.NewLogger("TESTING.MODULE", parent)
-	logger2, _ := loggo.NewLogger("Testing", parent)
-
-	c.Assert(logger1.Name(), gc.Equals, "testing.module")
-	c.Assert(logger2.Name(), gc.Equals, "testing")
-}
-
-func (s *LoggerSuite) TestLevelsInherited(c *gc.C) {
-	root, _ := loggo.NewRootLogger()
-	first, _ := loggo.NewLogger("first", root)
-	second, _ := loggo.NewLogger("first.second", first)
-
-	root.SetLogLevel(loggo.ERROR)
-	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(root.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(first.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(first.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(second.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-
-	first.SetLogLevel(loggo.DEBUG)
-	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(root.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(first.LogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(first.EffectiveLogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(second.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.DEBUG)
-
-	second.SetLogLevel(loggo.INFO)
-	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(root.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(first.LogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(first.EffectiveLogLevel(), gc.Equals, loggo.DEBUG)
-	c.Assert(second.LogLevel(), gc.Equals, loggo.INFO)
-	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.INFO)
-
-	first.SetLogLevel(loggo.UNSPECIFIED)
-	c.Assert(root.LogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(root.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(first.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
-	c.Assert(first.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Assert(second.LogLevel(), gc.Equals, loggo.INFO)
-	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.INFO)
+	c.Assert(logger.MinLogLevel(), gc.Equals, loggo.UNSPECIFIED)
+	c.Assert(loggo.EffectiveMinLevel(logger), gc.Equals, loggo.UNSPECIFIED)
 }
 
 func (s *LoggerSuite) TestLoggingStrings(c *gc.C) {
@@ -289,7 +225,7 @@ func (s *LoggerSuite) TestNoWriters(c *gc.C) {
 	err := loggo.RegisterWriter("test", writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
 	// Use a non-global logger with no writers set.
-	logger, _ := loggo.NewRootLogger()
+	logger := loggo.NewLogger(nil)
 	logger.SetLogLevel(loggo.TRACE)
 
 	logger.Warningf("just a simple warning")
@@ -298,7 +234,8 @@ func (s *LoggerSuite) TestNoWriters(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestWritingLimitWarning(c *gc.C) {
-	logger, writers := loggo.NewRootLogger()
+	writers := loggo.NewWriters(nil)
+	logger := loggo.NewLogger(writers)
 	logger.SetLogLevel(loggo.TRACE)
 	writer := &loggotest.Writer{}
 	err := writers.AddWithLevel("test", writer, loggo.WARNING)
@@ -328,7 +265,8 @@ func (s *LoggerSuite) TestWritingLimitWarning(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestWritingLimitTrace(c *gc.C) {
-	logger, writers := loggo.NewRootLogger()
+	writers := loggo.NewWriters(nil)
+	logger := loggo.NewLogger(writers)
 	logger.SetLogLevel(loggo.TRACE)
 	writer := &loggotest.Writer{}
 	err := writers.AddWithLevel("test", writer, loggo.TRACE)
@@ -366,7 +304,8 @@ func (s *LoggerSuite) TestWritingLimitTrace(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestMultipleWriters(c *gc.C) {
-	logger, writers := loggo.NewRootLogger()
+	writers := loggo.NewWriters(nil)
+	logger := loggo.NewLogger(writers)
 	logger.SetLogLevel(loggo.TRACE)
 	errorWriter := &loggotest.Writer{}
 	err := writers.AddWithLevel("error", errorWriter, loggo.ERROR)
@@ -390,4 +329,44 @@ func (s *LoggerSuite) TestMultipleWriters(c *gc.C) {
 	c.Assert(warningWriter.Log(), gc.HasLen, 2)
 	c.Assert(infoWriter.Log(), gc.HasLen, 3)
 	c.Assert(traceWriter.Log(), gc.HasLen, 4)
+}
+
+func (s *LoggerSuite) TestLoggerAsGoLogger(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.NewLogger(loggo.NewMinLevelWriter(writer, loggo.TRACE))
+	logger.SetLogLevel(loggo.TRACE)
+	log := loggo.LoggerAsGoLogger(logger, loggo.WARNING)
+
+	log.Print("raw message")
+
+	records := writer.Log()
+	c.Assert(records, gc.HasLen, 1)
+	c.Assert(records[0].Level, gc.Equals, loggo.WARNING)
+	c.Assert(records[0].Module, gc.Equals, "<>")
+	c.Assert(records[0].Filename, gc.Equals, "logger_test.go")
+	c.Assert(records[0].Message, gc.Equals, "raw message")
+}
+
+func (s *LoggerSuite) TestLoggerAsIOWriter(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.NewLogger(loggo.NewMinLevelWriter(writer, loggo.TRACE))
+	logger.SetLogLevel(loggo.TRACE)
+	ioWriter := loggo.LoggerAsIOWriter(logger, loggo.WARNING)
+
+	logger.Errorf("Error message")
+	_, err := ioWriter.Write([]byte("raw message"))
+	c.Assert(err, gc.IsNil)
+	logger.Infof("Info message")
+	logger.Warningf("Warning message")
+
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 4)
+	c.Assert(log[0].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[0].Message, gc.Equals, "Error message")
+	c.Assert(log[1].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[1].Message, gc.Equals, "raw message")
+	c.Assert(log[2].Level, gc.Equals, loggo.INFO)
+	c.Assert(log[2].Message, gc.Equals, "Info message")
+	c.Assert(log[3].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[3].Message, gc.Equals, "Warning message")
 }

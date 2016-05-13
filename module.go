@@ -8,95 +8,63 @@ import (
 	"sync"
 )
 
-// Do not change rootName: modules.resolve() will misbehave if it isn't "".
+// Do not change rootModuleName: modules.resolve() will misbehave if it isn't "".
 const (
-	rootName         = ""
-	rootString       = "<root>"
-	defaultRootLevel = WARNING
-	defaultLevel     = UNSPECIFIED
+	rootName       = "<root>"
+	rootModuleName = ""
 )
 
+func newRootModule() *module {
+	// The root module can't be unspecified (see SubLogger.EffectiveLogLevel).
+	// So we set a default level.
+	st := loggerState{
+		name:         rootName,
+		level:        defaultRootLevel,
+		defaultLevel: defaultRootLevel,
+	}
+	return &module{
+		loggerState: st,
+	}
+}
+
+// newSubmodule returns a new submodule for the given info.
+//
+// The name should not be the empty string.
+// A parent must always be provided.
+func newSubmodule(name string, parent *module, level Level) *module {
+	name = strings.ToLower(name)
+	st := loggerState{
+		name:  name,
+		level: level,
+	}
+	return &module{
+		loggerState: st,
+		parent:      parent,
+	}
+}
+
 type module struct {
-	name   string
-	level  Level
+	loggerState
 	parent *module
 }
 
-func newModule(name string, parent *module) *module {
-	if name == rootString {
-		name = rootName
-	}
-	if name == rootName {
-		if parent != nil {
-			panic("should never happen")
-		}
-		return newRootModule()
-	}
-	return newSubmodule(name, parent, defaultLevel)
-}
-
-func newRootModule() *module {
-	return &module{
-		name:  rootName,
-		level: defaultRootLevel,
-	}
-}
-
-func newSubmodule(name string, parent *module, level Level) *module {
-	if parent == nil {
-		// We must ensure that every non-root module has a root ancestor.
-		parent = newRootModule()
-	}
-	return &module{
-		name:   name,
-		level:  level,
-		parent: parent,
-	}
-}
-
-// Name returns the module's name.
+// Name returns the logger's module name.
 func (module *module) Name() string {
-	if module.name == rootName {
-		return "<root>"
+	if module == nil || module.loggerState.Name() == rootModuleName {
+		return rootName
 	}
-	return module.name
-}
-
-// MinLogLevel returns the configured minimum log level of the
-// module. This is the level at which messages with a lower level
-// will be discarded.
-func (module *module) MinLogLevel() Level {
-	return module.level.get()
+	return module.loggerState.Name()
 }
 
 // ParentWithMinLogLevel returns the module's parent (or nil).
 func (module *module) ParentWithMinLogLevel() HasMinLevel {
+	if module == nil {
+		return nil
+	}
 	if module.parent == nil { // avoid double nil
 		return nil
 	}
 	return module.parent
-}
-
-// config returns the current configuration for the module.
-func (module *module) config() LoggerConfig {
-	return LoggerConfig{
-		Level: module.MinLogLevel(),
-	}
-}
-
-// applyConfig configures the logger according to the provided config.
-func (module *module) applyConfig(cfg LoggerConfig) {
-	module.setLevel(cfg.Level)
-}
-
-// setLevel sets the severity level of the given module.
-// The root module cannot be set to UNSPECIFIED level.
-func (module *module) setLevel(level Level) {
-	// The root module can't be unspecified (see Logger.EffectiveLogLevel).
-	if module.name == rootName && level == UNSPECIFIED {
-		level = defaultRootLevel
-	}
-	module.level.set(level)
 }
 
 type modules struct {
@@ -117,17 +85,17 @@ func newModules(rootLevel Level) *modules {
 }
 
 func (m *modules) initUnlocked() {
-	if m.rootLevel <= UNSPECIFIED {
+	if m.rootLevel == UNSPECIFIED {
 		// The root level cannot be UNSPECIFIED.
 		m.rootLevel = defaultRootLevel
 	}
-	if m.defaultLevel <= UNSPECIFIED {
+	if m.defaultLevel == UNSPECIFIED {
 		m.defaultLevel = defaultLevel
 	}
 	root := newRootModule()
 	root.level = m.rootLevel
 	m.all = map[string]*module{
-		rootName: root,
+		rootModuleName: root,
 	}
 }
 
@@ -151,13 +119,13 @@ func (m *modules) get(name string) *module {
 
 func (m *modules) resolveUnlocked(name string) *module {
 	// m must already be initialized (e.g. newModules()).
-	if name == rootString {
-		name = rootName
+	if name == rootName {
+		name = rootModuleName
 	}
 	if impl, found := m.all[name]; found {
 		return impl
 	}
-	parentName := rootName
+	parentName := rootModuleName
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}
@@ -173,13 +141,14 @@ func (m *modules) resolveUnlocked(name string) *module {
 func (m *modules) config() LoggersConfig {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.maybeInitUnlocked() // guarantee we have a root module
 
 	cfg := make(LoggersConfig)
 	for _, module := range m.all {
-		if module.MinLogLevel() <= UNSPECIFIED {
+		if module.MinLogLevel() == UNSPECIFIED {
 			continue
 		}
-		cfg[module.Name()] = module.config()
+		cfg[module.name] = module.config()
 	}
 	return cfg
 }
@@ -191,7 +160,7 @@ func (m *modules) resetLevels() {
 	defer m.mu.Unlock()
 
 	for name, module := range m.all {
-		if name == rootName {
+		if name == rootModuleName {
 			module.level.set(m.rootLevel)
 		} else {
 			module.level.set(m.defaultLevel)

@@ -29,9 +29,14 @@ func LoggerInfo() string {
 	return globalLoggers.Config().String()
 }
 
-// GetLogger returns a Logger for the given module name,
+// Root returns the root logger.
+func Root() SubLogger {
+	return globalLoggers.Root()
+}
+
+// GetLogger returns a logger for the given module name,
 // creating it and its parents if necessary.
-func GetLogger(name string) Logger {
+func GetLogger(name string) SubLogger {
 	return globalLoggers.Get(name)
 }
 
