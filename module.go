@@ -14,13 +14,16 @@ const (
 	rootModuleName = ""
 )
 
-func newRootModule() *loggerState {
+func newRootModule() *module {
 	// The root module can't be unspecified (see SubLogger.EffectiveLogLevel).
 	// So we set a default level.
-	return &loggerState{
+	st := loggerState{
 		name:         rootName,
 		level:        defaultRootLevel,
 		defaultLevel: defaultRootLevel,
+	}
+	return &module{
+		loggerState: st,
 	}
 }
 
@@ -28,20 +31,47 @@ func newRootModule() *loggerState {
 //
 // The name should not be the empty string.
 // A parent must always be provided.
-func newSubmodule(name string, parent *loggerState, level Level) *loggerState {
+func newSubmodule(name string, parent *module, level Level) *module {
 	name = strings.ToLower(name)
-	return &loggerState{
-		name:   name,
-		level:  level,
-		parent: parent,
+	st := loggerState{
+		name:  name,
+		level: level,
 	}
+	return &module{
+		loggerState: st,
+		parent:      parent,
+	}
+}
+
+type module struct {
+	loggerState
+	parent *module
+}
+
+// Name returns the logger's module name.
+func (module *module) Name() string {
+	if module == nil || module.loggerState.Name() == rootModuleName {
+		return rootName
+	}
+	return module.loggerState.Name()
+}
+
+// ParentWithMinLogLevel returns the module's parent (or nil).
+func (module *module) ParentWithMinLogLevel() HasMinLevel {
+	if module == nil {
+		return nil
+	}
+	if module.parent == nil { // avoid double nil
+		return nil
+	}
+	return module.parent
 }
 
 type modules struct {
 	mu           sync.Mutex
 	rootLevel    Level
 	defaultLevel Level
-	all          map[string]*loggerState
+	all          map[string]*module
 }
 
 // Initially the modules map only contains the root module.
@@ -64,7 +94,7 @@ func (m *modules) initUnlocked() {
 	}
 	root := newRootModule()
 	root.level = m.rootLevel
-	m.all = map[string]*loggerState{
+	m.all = map[string]*module{
 		rootModuleName: root,
 	}
 }
@@ -77,7 +107,7 @@ func (m *modules) maybeInitUnlocked() {
 
 // get returns a Logger for the given module name,
 // creating it and its parents if necessary.
-func (m *modules) get(name string) *loggerState {
+func (m *modules) get(name string) *module {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.maybeInitUnlocked() // guarantee we have a root module
@@ -87,7 +117,7 @@ func (m *modules) get(name string) *loggerState {
 	return m.resolveUnlocked(name)
 }
 
-func (m *modules) resolveUnlocked(name string) *loggerState {
+func (m *modules) resolveUnlocked(name string) *module {
 	// m must already be initialized (e.g. newModules()).
 	if name == rootName {
 		name = rootModuleName

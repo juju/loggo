@@ -16,18 +16,16 @@ import (
 // to it will be sent to the global root logger.
 type SubLogger struct {
 	logger
+	*module
+	writer Writer
 }
 
 // NewRootLogger creates a root logger and returns it, along with
 // the writers that the logger will use.
 func NewRootLogger() (SubLogger, *Writers) {
 	writers := NewWriters(nil) // starts off empty
-	root := SubLogger{
-		logger: logger{
-			loggerState: newRootModule(),
-			writer:      writers,
-		},
-	}
+	module := newRootModule()
+	root := newSubLogger(module, writers)
 	return root, writers
 }
 
@@ -48,17 +46,20 @@ func NewSubLogger(name string, parent SubLogger) (SubLogger, *Writers) {
 			writers.AddWithLevel(defaultWriterName, parent.writer, UNSPECIFIED)
 		}
 	}
-	logger := newSubLogger(name, parent.loggerState, writers)
+	module := newSubmodule(name, parent.module, defaultLevel)
+	logger := newSubLogger(module, writers)
 	return logger, writers
 }
 
-func newSubLogger(name string, parent *loggerState, writer MinLevelWriter) SubLogger {
-	// The parent *may* be nil.
+func newSubLogger(module *module, writer MinLevelWriter) SubLogger {
 	return SubLogger{
-		logger: logger{
-			loggerState: newSubmodule(name, parent, defaultLevel),
+		logger: logger{&callLogger{
+			HasMinLevel: &module.loggerState,
+			st:          &module.loggerState,
 			writer:      writer,
-		},
+		}},
+		module: module,
+		writer: writer,
 	}
 }
 
@@ -66,23 +67,27 @@ func (logger SubLogger) isZero() bool {
 	return reflect.DeepEqual(logger, SubLogger{})
 }
 
-// Name returns the logger's module name.
-func (logger SubLogger) Name() string {
-	if logger.logger.Name() == rootModuleName {
-		return rootName
-	}
-	return logger.logger.Name()
+// SetLogLevel sets the severity level of the given logger.
+func (logger *SubLogger) SetLogLevel(level Level) {
+	logger.setLevel(level)
 }
 
 // TODO(ericsnow) Everything below here is unnecessary now and should
 // be deprecated.
+
+func (logger SubLogger) getModule() *module {
+	if logger.module == nil {
+		return newRootModule()
+	}
+	return logger.module
+}
 
 // LogLevel returns the configured min log level of the logger.
 //
 // This is strictly an alias for MinLogLevel, intended to align with
 // a more commonly used (but less specific) name.
 func (logger SubLogger) LogLevel() Level {
-	return logger.MinLogLevel()
+	return logger.getModule().MinLogLevel()
 }
 
 // EffectiveLogLevel returns the effective min log level of
@@ -93,13 +98,13 @@ func (logger SubLogger) LogLevel() Level {
 // it will be taken from the effective log level of its
 // parent.
 func (logger SubLogger) EffectiveLogLevel() Level {
-	return EffectiveMinLevel(logger)
+	return EffectiveMinLevel(logger.getModule())
 }
 
 // IsLevelEnabled returns whether debugging is enabled
 // for the given log level.
 func (logger SubLogger) IsLevelEnabled(level Level) bool {
-	return IsLevelEnabled(logger, level)
+	return IsLevelEnabled(logger.getModule(), level)
 }
 
 // IsErrorEnabled returns whether debugging is enabled

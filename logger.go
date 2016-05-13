@@ -15,18 +15,8 @@ const (
 	defaultLevel     = UNSPECIFIED
 )
 
-// A Logger represents a single logger. It has an associated
-// logging level; messages of lesser severity will be dropped.
-type Logger interface {
-	HasMinLevel
-
-	// Logf logs a printf-formatted message at the given level.
-	// A message will be discarded if level is less than the
-	// the effective log level of the logger.
-	// Note that the writers may also filter out messages that
-	// are less than their registered minimum severity level.
-	Logf(level Level, message string, args ...interface{})
-
+// CallLogger is the most basic kind logger in this package.
+type CallLogger interface {
 	// LogCallf logs a printf-formatted message at the given level.
 	// The location of the call is indicated by the calldepth argument.
 	// A calldepth of 1 means the function that called this function.
@@ -35,6 +25,20 @@ type Logger interface {
 	// Note that the writers may also filter out messages that
 	// are less than their registered minimum severity level.
 	LogCallf(calldepth int, level Level, message string, args ...interface{})
+}
+
+// A Logger represents a single logger. It has an associated
+// logging level; messages of lesser severity will be dropped.
+type Logger interface {
+	HasMinLevel
+	CallLogger
+
+	// Logf logs a printf-formatted message at the given level.
+	// A message will be discarded if level is less than the
+	// the effective log level of the logger.
+	// Note that the writers may also filter out messages that
+	// are less than their registered minimum severity level.
+	Logf(level Level, message string, args ...interface{})
 
 	// Criticalf logs the printf-formatted message at critical level.
 	Criticalf(message string, args ...interface{})
@@ -65,90 +69,53 @@ type ConfigurableLogger interface {
 	SetLogLevel(Level)
 }
 
-// loggerState holds the raw info about the logger.
-//
-// A nil loggerState pointer represents a read-only root logger.
-type loggerState struct {
-	name         string
-	level        Level
-	defaultLevel Level
-	parent       *loggerState
-}
-
-// Name returns the logger's name.
-func (st *loggerState) Name() string {
-	if st == nil {
-		return ""
-	}
-	return st.name
-}
-
-// MinLogLevel returns the configured minimum log level of the
-// logger. This is the level at which messages with a lower level
-// will be discarded.
-func (st *loggerState) MinLogLevel() Level {
-	if st == nil {
-		return defaultRootLevel
-	}
-	return st.level.get()
-}
-
-// setLevel sets the severity level of the logger..
-//
-// This will panic if the loggerState pointer is nil.
-func (st *loggerState) setLevel(level Level) {
-	if level == UNSPECIFIED {
-		level = st.defaultLevel
-	}
-	st.level.set(level)
-}
-
-// ParentWithMinLogLevel returns the logger's parent (or nil).
-func (st *loggerState) ParentWithMinLogLevel() HasMinLevel {
-	if st == nil {
-		return nil
-	}
-	if st.parent == nil { // avoid double nil
-		return nil
-	}
-	return st.parent
-}
-
-// config returns the current configuration for the logger.
-func (st *loggerState) config() LoggerConfig {
-	return LoggerConfig{
-		Level: st.MinLogLevel(),
-	}
-}
-
-// applyConfig configures the logger according to the provided config.
-//
-// This will panic if the loggerState pointer is nil.
-func (st *loggerState) applyConfig(cfg LoggerConfig) {
-	st.setLevel(cfg.Level)
-}
-
-// A logger represents an independent logger. It has an associated
-// logging level which can be changed; messages of lesser severity
-// will be dropped.
-type logger struct {
-	*loggerState
-	writer MinLevelWriter
-}
-
 // NewLogger returns a new Logger that will use the given writer.
 func NewLogger(writer MinLevelWriter) ConfigurableLogger {
-	return &logger{
-		loggerState: &loggerState{
-			level: defaultLevel,
-		},
-		writer: writer,
+	st := &loggerState{
+		level: defaultLevel,
+	}
+	return &simpleLogger{
+		logger: logger{&callLogger{
+			HasMinLevel: st,
+			st:          st,
+			writer:      writer,
+		}},
+		loggerState: st,
 	}
 }
 
-// SetLogLevel sets the severity level of the given logger.
-func (logger *logger) SetLogLevel(level Level) {
-	logger.setLevel(level)
+// LoggerAsGoLogger wraps the logger in a stdlib log.Logger. The
+// messages are logged at the provided level.
+func LoggerAsGoLogger(logger Logger, level Level) *log.Logger {
+	w := LoggerAsIOWriter(logger, level)
+	return log.New(w, "", 0)
+}
+
+// IOAdapter is an io.Writer that logs written messages.
+type IOAdapter struct {
+	logger Logger
+	level  Level
+}
+
+// LoggerAsIOWriter returns a new io.Writer that logs the written messages
+// at the given log level.
+func LoggerAsIOWriter(logger Logger, level Level) *IOAdapter {
+	return &IOAdapter{
+		logger: logger,
+		level:  level,
+	}
+}
+
+// Write implements io.Writer, logging the message at the predefined log level.
+func (w IOAdapter) Write(msg []byte) (int, error) {
+	n := len(msg)
+	// Same calldepth as in Logf + 2 for log.Logger.
+	w.logger.LogCallf(5, w.level, string(msg))
+	return n, nil
+}
+
+type logger struct {
+	CallLogger
 }
 
 // Logf logs a printf-formatted message at the given level.
@@ -156,65 +123,11 @@ func (logger *logger) SetLogLevel(level Level) {
 // the effective log level of the logger.
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
-func (logger logger) Logf(level Level, message string, args ...interface{}) {
-	logger.LogCallf(2, level, message, args...)
-}
-
-// LogCallf logs a printf-formatted message at the given level.
-// The location of the call is indicated by the calldepth argument.
-// A calldepth of 1 means the function that called this function.
-// A message will be discarded if level is less than the
-// the effective log level of the logger.
-// Note that the writers may also filter out messages that
-// are less than their registered minimum severity level.
-func (logger logger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
-	if !logger.willWrite(level) {
+func (logger *logger) Logf(level Level, message string, args ...interface{}) {
+	if logger == nil || logger.CallLogger == nil {
 		return
 	}
-	loggerName := logger.name
-	if loggerName == "" {
-		loggerName = "<>"
-	}
-
-	// Gather time, filename, and line number.
-	now := time.Now() // get this early.
-	// Param to Caller is the call depth.  Since this method is called from
-	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := runtime.Caller(calldepth + 1)
-	if !ok {
-		file = "???"
-		line = 0
-	}
-	// Trim newline off format string, following usual
-	// Go logging conventions.
-	if len(message) > 0 && message[len(message)-1] == '\n' {
-		message = message[0 : len(message)-1]
-	}
-
-	// To avoid having a proliferation of Info/Infof methods,
-	// only use Sprintf if there are any args, and rely on the
-	// `go vet` tool for the obvious cases where someone has forgotten
-	// to provide an arg.
-	formattedMessage := message
-	if len(args) > 0 {
-		formattedMessage = fmt.Sprintf(message, args...)
-	}
-	if logger.writer != nil {
-		logger.writer.Write(level, loggerName, file, line, now, formattedMessage)
-	}
-}
-
-func (logger logger) willWrite(level Level) bool {
-	if !IsLevelEnabled(logger, level) {
-		return false
-	}
-	if !IsLevelEnabled(logger.writer, level) {
-		return false
-	}
-	if level < TRACE || level > CRITICAL {
-		return false
-	}
-	return true
+	logger.LogCallf(3, level, message, args...)
 }
 
 // Criticalf logs the printf-formatted message at critical level.
@@ -247,31 +160,137 @@ func (logger logger) Tracef(message string, args ...interface{}) {
 	logger.Logf(TRACE, message, args...)
 }
 
-// LoggerAsGoLogger wraps the logger in a stdlib log.Logger. The
-// messages are logged at the provided level.
-func LoggerAsGoLogger(logger Logger, level Level) *log.Logger {
-	w := LoggerAsIOWriter(logger, level)
-	return log.New(w, "", 0)
+// A simpleLogger represents an independent logger. It has an associated
+// logging level which can be changed; messages of lesser severity
+// will be dropped.
+type simpleLogger struct {
+	logger
+	*loggerState
 }
 
-// IOAdapter is an io.Writer that logs written messages.
-type IOAdapter struct {
-	logger Logger
-	level  Level
+// SetLogLevel sets the severity level of the given logger.
+func (logger *simpleLogger) SetLogLevel(level Level) {
+	logger.setLevel(level)
 }
 
-// LoggerAsIOWriter returns a new io.Writer that logs the written messages
-// at the given log level.
-func LoggerAsIOWriter(logger Logger, level Level) *IOAdapter {
-	return &IOAdapter{
-		logger: logger,
-		level:  level,
+// A callLogger represents the basic capability of a single logger.
+// It has an associated logging level where messages of lesser severity
+// will be dropped.
+type callLogger struct {
+	HasMinLevel
+	st     *loggerState
+	writer MinLevelWriter
+}
+
+// LogCallf logs a printf-formatted message at the given level.
+// The location of the call is indicated by the calldepth argument.
+// A calldepth of 1 means the function that called this function.
+// A message will be discarded if level is less than the
+// the effective log level of the logger.
+// Note that the writers may also filter out messages that
+// are less than their registered minimum severity level.
+func (logger *callLogger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
+	if logger == nil || !logger.willWrite(level) {
+		return
+	}
+	loggerName := logger.st.name
+	if loggerName == "" {
+		loggerName = "<>"
+	}
+
+	// Gather time, filename, and line number.
+	now := time.Now() // get this early.
+	// Param to Caller is the call depth.  Since this method is called from
+	// the Logger methods, we want the place that those were called from.
+	_, file, line, ok := runtime.Caller(calldepth + 1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+
+	// Trim newline off format string, following usual
+	// Go logging conventions.
+	if len(message) > 0 && message[len(message)-1] == '\n' {
+		message = message[0 : len(message)-1]
+	}
+
+	// To avoid having a proliferation of Info/Infof methods,
+	// only use Sprintf if there are any args, and rely on the
+	// `go vet` tool for the obvious cases where someone has forgotten
+	// to provide an arg.
+	formattedMessage := message
+	if len(args) > 0 {
+		formattedMessage = fmt.Sprintf(message, args...)
+	}
+	if logger.writer != nil {
+		logger.writer.Write(level, loggerName, file, line, now, formattedMessage)
 	}
 }
 
-// Write implements io.Writer, logging the message at the predefined log level.
-func (w IOAdapter) Write(msg []byte) (int, error) {
-	n := len(msg)
-	w.logger.LogCallf(2, w.level, string(msg))
-	return n, nil
+func (logger callLogger) willWrite(level Level) bool {
+	if logger.HasMinLevel == nil {
+		if !IsLevelEnabled(logger.st, level) {
+			return false
+		}
+	} else if !IsLevelEnabled(logger, level) {
+		return false
+	}
+	if !IsLevelEnabled(logger.writer, level) {
+		return false
+	}
+	if level < TRACE || level > CRITICAL {
+		return false
+	}
+	return true
+}
+
+// loggerState holds the raw info about the logger.
+//
+// A nil loggerState pointer represents a read-only root logger.
+type loggerState struct {
+	name         string
+	level        Level
+	defaultLevel Level
+}
+
+// Name returns the logger's name.
+func (st *loggerState) Name() string {
+	if st == nil {
+		return ""
+	}
+	return st.name
+}
+
+// MinLogLevel returns the configured minimum log level of the
+// logger. This is the level at which messages with a lower level
+// will be discarded.
+func (st *loggerState) MinLogLevel() Level {
+	if st == nil {
+		return defaultRootLevel
+	}
+	return st.level.get()
+}
+
+// setLevel sets the severity level of the logger..
+//
+// This will panic if the loggerState pointer is nil.
+func (st *loggerState) setLevel(level Level) {
+	if level == UNSPECIFIED {
+		level = st.defaultLevel
+	}
+	st.level.set(level)
+}
+
+// config returns the current configuration for the logger.
+func (st *loggerState) config() LoggerConfig {
+	return LoggerConfig{
+		Level: st.MinLogLevel(),
+	}
+}
+
+// applyConfig configures the logger according to the provided config.
+//
+// This will panic if the loggerState pointer is nil.
+func (st *loggerState) applyConfig(cfg LoggerConfig) {
+	st.setLevel(cfg.Level)
 }
