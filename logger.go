@@ -245,3 +245,25 @@ func (logger logger) Debugf(message string, args ...interface{}) {
 func (logger logger) Tracef(message string, args ...interface{}) {
 	logger.Logf(TRACE, message, args...)
 }
+
+// IOAdapter is an io.Writer that logs written messages.
+type IOAdapter struct {
+	logger Logger
+	level  Level
+}
+
+// LoggerAsIOWriter returns a new io.Writer that logs the written messages
+// at the given log level.
+func LoggerAsIOWriter(logger Logger, level Level) *IOAdapter {
+	return &IOAdapter{
+		logger: logger,
+		level:  level,
+	}
+}
+
+// Write implements io.Writer, logging the message at the predefined log level.
+func (w IOAdapter) Write(msg []byte) (int, error) {
+	n := len(msg)
+	w.logger.LogCallf(2, w.level, string(msg))
+	return n, nil
+}

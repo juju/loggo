@@ -330,3 +330,27 @@ func (s *LoggerSuite) TestMultipleWriters(c *gc.C) {
 	c.Assert(infoWriter.Log(), gc.HasLen, 3)
 	c.Assert(traceWriter.Log(), gc.HasLen, 4)
 }
+
+func (s *LoggerSuite) TestLoggerAsIOWriter(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.NewLogger(loggo.NewMinLevelWriter(writer, loggo.TRACE))
+	logger.SetLogLevel(loggo.TRACE)
+	ioWriter := loggo.LoggerAsIOWriter(logger, loggo.WARNING)
+
+	logger.Errorf("Error message")
+	_, err := ioWriter.Write([]byte("raw message"))
+	c.Assert(err, gc.IsNil)
+	logger.Infof("Info message")
+	logger.Warningf("Warning message")
+
+	log := writer.Log()
+	c.Assert(log, gc.HasLen, 4)
+	c.Assert(log[0].Level, gc.Equals, loggo.ERROR)
+	c.Assert(log[0].Message, gc.Equals, "Error message")
+	c.Assert(log[1].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[1].Message, gc.Equals, "raw message")
+	c.Assert(log[2].Level, gc.Equals, loggo.INFO)
+	c.Assert(log[2].Message, gc.Equals, "Info message")
+	c.Assert(log[3].Level, gc.Equals, loggo.WARNING)
+	c.Assert(log[3].Message, gc.Equals, "Warning message")
+}
