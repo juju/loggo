@@ -30,28 +30,25 @@ func LoggersFromConfig(spec string, writers *Writers) (*Loggers, error) {
 	}
 	loggers.ApplyConfig(configs)
 
-	loggers.m.rootLevel = loggers.Get(rootName).LogLevel()
+	loggers.m.rootLevel = loggers.Get(rootName).MinLogLevel()
 	return loggers, nil
 }
 
-// Get returns a Logger for the given module name, creating it and
+// Get returns a logger for the given module name, creating it and
 // its parents if necessary.
-func (ls *Loggers) Get(name string) Logger {
-	return Logger{
-		impl:   ls.m.get(name),
-		writer: ls.w,
+func (ls *Loggers) Get(name string) SubLogger {
+	return SubLogger{
+		logger: logger{
+			loggerState: ls.m.get(name),
+			writer:      ls.w,
+		},
 	}
 }
 
 // Config returns the current configuration of the Loggers. Loggers
 // with UNSPECIFIED level will not be included.
 func (ls *Loggers) Config() LoggersConfig {
-	configs := ls.m.config()
-	for name, cfg := range configs {
-		ls.Get(name).updateConfig(&cfg)
-		configs[name] = cfg
-	}
-	return configs
+	return ls.m.config()
 }
 
 // ApplyConfig configures the loggers according to the provided configs.

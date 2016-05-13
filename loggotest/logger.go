@@ -9,7 +9,7 @@ import (
 
 // TraceLogger returns the named logger. It also sets the logger's
 // writer and returns it.
-func TraceLogger() (loggo.Logger, *Writer) {
+func TraceLogger() (loggo.SubLogger, *Writer) {
 	logger, writers := loggo.NewRootLogger()
 	// Make it so the logger itself writes all messages.
 	logger.SetLogLevel(loggo.TRACE)

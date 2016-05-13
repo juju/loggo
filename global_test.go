@@ -22,7 +22,7 @@ func (*GlobalLoggersSuite) SetUpTest(c *gc.C) {
 }
 
 func (*GlobalLoggersSuite) TestRootLogger(c *gc.C) {
-	var root loggo.Logger
+	var root loggo.SubLogger
 
 	got := loggo.GetLogger("")
 
@@ -175,18 +175,18 @@ func (s *GlobalLoggersSuite) TestConfigureLoggers(c *gc.C) {
 		// Test that it's idempotent.
 		err = loggo.ConfigureLoggers(test.spec)
 		c.Assert(err, gc.IsNil)
-		c.Assert(loggo.LoggerInfo(), gc.Equals, test.info)
+		c.Check(loggo.LoggerInfo(), gc.Equals, test.info)
 
 		// Test that calling ConfigureLoggers with the
 		// output of LoggerInfo works too.
 		err = loggo.ConfigureLoggers(test.info)
 		c.Assert(err, gc.IsNil)
-		c.Assert(loggo.LoggerInfo(), gc.Equals, test.info)
+		c.Check(loggo.LoggerInfo(), gc.Equals, test.info)
 	}
 }
 
 type GlobalWritersSuite struct {
-	logger loggo.Logger
+	logger loggo.SubLogger
 	writer *loggotest.Writer
 }
 
@@ -320,7 +320,7 @@ func (s *GlobalWritersSuite) TestWillWrite(c *gc.C) {
 }
 
 type GlobalBenchmarksSuite struct {
-	logger loggo.Logger
+	logger loggo.SubLogger
 	writer *loggotest.Writer
 }
 
