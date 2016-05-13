@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"time"
 )
@@ -244,6 +245,13 @@ func (logger logger) Debugf(message string, args ...interface{}) {
 // Tracef logs the printf-formatted message at trace level.
 func (logger logger) Tracef(message string, args ...interface{}) {
 	logger.Logf(TRACE, message, args...)
+}
+
+// LoggerAsGoLogger wraps the logger in a stdlib log.Logger. The
+// messages are logged at the provided level.
+func LoggerAsGoLogger(logger Logger, level Level) *log.Logger {
+	w := LoggerAsIOWriter(logger, level)
+	return log.New(w, "", 0)
 }
 
 // IOAdapter is an io.Writer that logs written messages.

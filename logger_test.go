@@ -331,6 +331,20 @@ func (s *LoggerSuite) TestMultipleWriters(c *gc.C) {
 	c.Assert(traceWriter.Log(), gc.HasLen, 4)
 }
 
+func (s *LoggerSuite) TestLoggerAsGoLogger(c *gc.C) {
+	writer := &loggotest.Writer{}
+	logger := loggo.NewLogger(loggo.NewMinLevelWriter(writer, loggo.TRACE))
+	logger.SetLogLevel(loggo.TRACE)
+	log := loggo.LoggerAsGoLogger(logger, loggo.WARNING)
+
+	log.Print("raw message")
+
+	records := writer.Log()
+	c.Assert(records, gc.HasLen, 1)
+	c.Assert(records[0].Level, gc.Equals, loggo.WARNING)
+	c.Assert(records[0].Message, gc.Equals, "raw message")
+}
+
 func (s *LoggerSuite) TestLoggerAsIOWriter(c *gc.C) {
 	writer := &loggotest.Writer{}
 	logger := loggo.NewLogger(loggo.NewMinLevelWriter(writer, loggo.TRACE))
