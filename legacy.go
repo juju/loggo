@@ -101,11 +101,11 @@ type LegacyCompatibleWriter interface {
 	legacyWriter
 }
 
-type legacyWriterShim struct {
+type LegacyWriterShim struct {
 	RecordWriter
 }
 
-func (shim legacyWriterShim) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
+func (shim LegacyWriterShim) Write(level Level, loggerName, filename string, line int, timestamp time.Time, message string) {
 	shim.WriteRecord(Record{
 		Level:      level,
 		LoggerName: loggerName,
@@ -130,7 +130,7 @@ func (law *legacyAdaptingWriter) WriteRecord(rec Record) {
 //
 // NewSimpleWriter is deprecated. Use NewFormattingWriter.
 func NewSimpleWriter(writer io.Writer, formatter LegacyFormatter) LegacyCompatibleWriter {
-	return &legacyWriterShim{
+	return &LegacyWriterShim{
 		&formattingWriter{writer, &legacyAdaptingFormatter{formatter}},
 	}
 }

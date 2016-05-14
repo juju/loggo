@@ -412,8 +412,9 @@ func (s *GlobalBenchmarksSuite) setupTempFileWriter(c *gc.C) *os.File {
 	loggo.RemoveWriter("test")
 	logFile, err := ioutil.TempFile(c.MkDir(), "loggo-test")
 	c.Assert(err, gc.IsNil)
-	//writer := loggo.NewFormattingWriter(logFile, nil)
-	writer := loggo.NewSimpleWriter(logFile, &loggo.DefaultFormatter{})
+	recWriter := loggo.NewFormattingWriter(logFile, nil)
+	writer := loggo.LegacyWriterShim{recWriter}
+	//writer := loggo.NewSimpleWriter(logFile, &loggo.DefaultFormatter{})
 	err = loggo.RegisterWriter("testfile", writer, loggo.TRACE)
 	c.Assert(err, gc.IsNil)
 	return logFile

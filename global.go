@@ -63,7 +63,7 @@ func ReplaceDefaultWriter(writer Writer) (LegacyCompatibleWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &legacyWriterShim{w}, nil
+	return &LegacyWriterShim{w}, nil
 }
 
 // RegisterWriter adds the writer to the list of writers that get notified
@@ -88,7 +88,7 @@ func RemoveWriter(name string) (Writer, Level, error) {
 	if err != nil {
 		return nil, UNSPECIFIED, err
 	}
-	return &legacyWriterShim{registered}, registered.MinLogLevel(), nil
+	return &LegacyWriterShim{registered}, registered.MinLogLevel(), nil
 }
 
 // WillWrite returns whether there are any writers registered
