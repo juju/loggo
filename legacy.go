@@ -5,6 +5,8 @@ package loggo
 
 import (
 	"io"
+	"path"
+	"sync"
 	"time"
 )
 
@@ -131,6 +133,131 @@ func NewSimpleWriter(writer io.Writer, formatter LegacyFormatter) LegacyCompatib
 	return &legacyWriterShim{
 		&formattingWriter{writer, &legacyAdaptingFormatter{formatter}},
 	}
+}
+
+func (logger SubLogger) getModule() *module {
+	if logger.module == nil {
+		return newRootModule()
+	}
+	return logger.module
+}
+
+// LogLevel returns the configured min log level of the logger.
+//
+// This is strictly an alias for MinLogLevel, intended to align with
+// a more commonly used (but less specific) name.
+//
+// LogLevel is deprecated. Use MinLogLevel() instead.
+func (logger SubLogger) LogLevel() Level {
+	return logger.getModule().MinLogLevel()
+}
+
+// EffectiveLogLevel returns the effective min log level of
+// the receiver - that is, messages with a lesser severity
+// level will be discarded.
+//
+// If the log level of the receiver is unspecified,
+// it will be taken from the effective log level of its
+// parent.
+//
+// LogLevel is deprecated. Use loggo.EffectiveMinLevel() instead.
+func (logger SubLogger) EffectiveLogLevel() Level {
+	return EffectiveMinLevel(logger.getModule())
+}
+
+// IsLevelEnabled returns whether debugging is enabled
+// for the given log level.
+//
+// IsLevelEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsLevelEnabled(level Level) bool {
+	return IsLevelEnabled(logger.getModule(), level)
+}
+
+// IsErrorEnabled returns whether debugging is enabled
+// at error level.
+//
+// IsErrorEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsErrorEnabled() bool {
+	return logger.IsLevelEnabled(ERROR)
+}
+
+// IsWarningEnabled returns whether debugging is enabled
+// at warning level.
+//
+// IsWarningEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsWarningEnabled() bool {
+	return logger.IsLevelEnabled(WARNING)
+}
+
+// IsInfoEnabled returns whether debugging is enabled
+// at info level.
+//
+// IsInfoEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsInfoEnabled() bool {
+	return logger.IsLevelEnabled(INFO)
+}
+
+// IsDebugEnabled returns whether debugging is enabled
+// at debug level.
+//
+// IsDebugEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsDebugEnabled() bool {
+	return logger.IsLevelEnabled(DEBUG)
+}
+
+// IsTraceEnabled returns whether debugging is enabled
+// at trace level.
+//
+// IsTraceEnabled is deprecated. Use loggo.IsLevelEnabled() instead.
+func (logger SubLogger) IsTraceEnabled() bool {
+	return logger.IsLevelEnabled(TRACE)
+}
+
+// TestLogValues represents a single logging call.
+type TestLogValues struct {
+	Level     Level
+	Module    string
+	Filename  string
+	Line      int
+	Timestamp time.Time
+	Message   string
+}
+
+// TestWriter is a useful Writer for testing purposes.  Each component of the
+// logging message is stored in the Log array.
+type TestWriter struct {
+	mu  sync.Mutex
+	log []TestLogValues
+}
+
+// Write saves the params as members in the TestLogValues struct appended to the Log array.
+func (writer *TestWriter) Write(level Level, module, filename string, line int, timestamp time.Time, message string) {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	writer.log = append(writer.log, TestLogValues{
+		Level:     level,
+		Module:    module,
+		Filename:  path.Base(filename),
+		Line:      line,
+		Timestamp: timestamp,
+		Message:   message,
+	})
+}
+
+// Clear removes any saved log messages.
+func (writer *TestWriter) Clear() {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	writer.log = nil
+}
+
+// Log returns a copy of the current logged values.
+func (writer *TestWriter) Log() []TestLogValues {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	v := make([]TestLogValues, len(writer.log))
+	copy(v, writer.log)
+	return v
 }
 
 // TODO(ericsnow) ...also, the Write() method of loggotest.Writer.
