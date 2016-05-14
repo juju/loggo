@@ -56,6 +56,7 @@ func (writer *Writer) Log() []loggo.Record {
 	return v
 }
 
+// CheckLastMessage ensures that the last message logged to the writer matches.
 func CheckLastMessage(c *gc.C, writer *Writer, expected string) {
 	log := writer.Log()
 	writer.Clear()

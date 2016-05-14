@@ -33,14 +33,14 @@ type Record struct {
 }
 
 // NewRecord creates a new log record for the given log level, logger name,
-// and message. It uses the identified entry the call stack to determine
+// and message. It uses the identified entry from the call stack to determine
 // the filename and line number. The current time is used for the
 // timestamp.
 func NewRecord(calldepth int, level Level, loggerName, message string) Record {
-	// Gather time, filename, and line number.
-	now := time.Now() // get this early.
-	// Param to Caller is the call depth.  Since this method is called from
-	// the Logger methods, we want the place that those were called from.
+	// Gather time, filename, and line number. We get the timestamp
+	// first to keep it as close as possible to the actual call.
+	now := time.Now()
+	// We must add 1 to calldepth to account for this function.
 	_, file, line, ok := runtime.Caller(calldepth + 1)
 	if !ok {
 		file = "???"
@@ -66,17 +66,15 @@ func NewRecord(calldepth int, level Level, loggerName, message string) Record {
 // NewRecordf creates a new log record for the given info. The only
 // difference from NewRecord() is that the provided args are applied// to the message using fmt.Sprintf().
 func NewRecordf(calldepth int, level Level, loggerName, message string, args ...interface{}) Record {
+	// We must add 1 to calldepth to account for this function.
 	rec := NewRecord(calldepth+1, level, loggerName, message)
-	if len(args) == 0 {
-		return rec
+
+	// Only call Sprintf if args were provided. Rely on the
+	// `go vet` tool for the obvious cases where someone has
+	// forgotten to provide an arg.
+	if len(args) > 0 {
+		rec.Message = fmt.Sprintf(rec.Message, args...)
 	}
-
-	// To avoid having a proliferation of Info/Infof methods,
-	// only use Sprintf if there are any args, and rely on the
-	// `go vet` tool for the obvious cases where someone has forgotten
-	// to provide an arg.
-	rec.Message = fmt.Sprintf(rec.Message, args...)
-
 	return rec
 }
 
@@ -86,7 +84,7 @@ func NewRecordf(calldepth int, level Level, loggerName, message string, args ...
 // resolution in UTC.
 func (rec Record) String() string {
 	ts := rec.Timestamp.In(time.UTC).Format("2006-01-02 15:04:05")
-	// Just get the basename from the filename
+	// Just get the basename from the filename.
 	filename := filepath.Base(rec.Filename)
 	return fmt.Sprintf("%s %s %s %s:%d %s", ts, rec.Level, rec.LoggerName, filename, rec.Line, rec.Message)
 }

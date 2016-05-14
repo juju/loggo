@@ -81,6 +81,9 @@ type logger struct {
 	CallLogger
 }
 
+// "this" call + 1 anonymous intermediate function
+const callstackIndirection = 1 + 1
+
 // Logf logs a printf-formatted message at the given level.
 // A message will be discarded if level is less than the
 // the effective log level of the logger.
@@ -90,37 +93,37 @@ func (logger *logger) Logf(level Level, message string, args ...interface{}) {
 	if logger == nil || logger.CallLogger == nil {
 		return
 	}
-	logger.LogCallf(3, level, message, args...)
+	logger.LogCallf(callstackIndirection, level, message, args...)
 }
 
 // Criticalf logs the printf-formatted message at critical level.
 func (logger logger) Criticalf(message string, args ...interface{}) {
-	logger.Logf(CRITICAL, message, args...)
+	logger.LogCallf(callstackIndirection, CRITICAL, message, args...)
 }
 
 // Errorf logs the printf-formatted message at error level.
 func (logger logger) Errorf(message string, args ...interface{}) {
-	logger.Logf(ERROR, message, args...)
+	logger.LogCallf(callstackIndirection, ERROR, message, args...)
 }
 
 // Warningf logs the printf-formatted message at warning level.
 func (logger logger) Warningf(message string, args ...interface{}) {
-	logger.Logf(WARNING, message, args...)
+	logger.LogCallf(callstackIndirection, WARNING, message, args...)
 }
 
 // Infof logs the printf-formatted message at info level.
 func (logger logger) Infof(message string, args ...interface{}) {
-	logger.Logf(INFO, message, args...)
+	logger.LogCallf(callstackIndirection, INFO, message, args...)
 }
 
 // Debugf logs the printf-formatted message at debug level.
 func (logger logger) Debugf(message string, args ...interface{}) {
-	logger.Logf(DEBUG, message, args...)
+	logger.LogCallf(callstackIndirection, DEBUG, message, args...)
 }
 
 // Tracef logs the printf-formatted message at trace level.
 func (logger logger) Tracef(message string, args ...interface{}) {
-	logger.Logf(TRACE, message, args...)
+	logger.LogCallf(callstackIndirection, TRACE, message, args...)
 }
 
 // A simpleLogger represents an independent logger. It has an associated
@@ -160,6 +163,12 @@ func (logger *callLogger) LogCallf(calldepth int, level Level, message string, a
 	if loggerName == "" {
 		loggerName = "<>"
 	}
+
+	// To avoid having a proliferation of Info/Infof methods, use
+	// NewRecordf for both cases and rely on it to handle the args
+	// properly.
+
+	// We must add 1 to calldepth to account for this function.
 	rec := NewRecordf(calldepth+1, level, loggerName, message, args...)
 	if logger.writer != nil {
 		logger.writer.WriteRecord(rec)
