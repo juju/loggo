@@ -10,7 +10,6 @@ import (
 	gc "gopkg.in/check.v1"
 
 	"github.com/juju/loggo"
-	"github.com/juju/loggo/loggotest"
 )
 
 type SimpleWriterSuite struct{}
@@ -19,22 +18,20 @@ var _ = gc.Suite(&SimpleWriterSuite{})
 
 func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 	now := time.Now()
-	formatter := loggotest.NewFormatter(func(level loggo.Level, module, filename string, line int, timestamp time.Time, message string) string {
-		return "<< " + message + " >>"
-	})
+	formatter := func(entry loggo.Entry) string {
+		return "<< " + entry.Message + " >>"
+	}
 	buf := &bytes.Buffer{}
 
 	writer := loggo.NewSimpleWriter(buf, formatter)
-	writer.Write(loggo.INFO, "test", "somefile.go", 12, now, "a message")
-
-	log := formatter.Log()
-	c.Check(log, gc.DeepEquals, []loggotest.LogValues{{
+	writer.Write(loggo.Entry{
 		Level:     loggo.INFO,
 		Module:    "test",
 		Filename:  "somefile.go",
 		Line:      12,
 		Timestamp: now,
 		Message:   "a message",
-	}})
+	})
+
 	c.Check(buf.String(), gc.Equals, "<< a message >>\n")
 }
