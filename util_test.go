@@ -8,17 +8,17 @@ import (
 	"io/ioutil"
 	"strings"
 
-	gc "gopkg.in/check.v1"
+	"github.com/juju/loggo"
 
-	"github.com/juju/loggo/loggotest"
+	gc "gopkg.in/check.v1"
 )
 
 func init() {
-	setLocationsForTags("logger_test.go")
+	setLocationsForTags("logging_test.go")
 	setLocationsForTags("writer_test.go")
 }
 
-func assertLocation(c *gc.C, msg loggotest.LogValues, tag string) {
+func assertLocation(c *gc.C, msg loggo.Entry, tag string) {
 	loc := location(tag)
 	c.Assert(msg.Filename, gc.Equals, loc.file)
 	c.Assert(msg.Line, gc.Equals, loc.line)
