@@ -20,6 +20,9 @@ type Context struct {
 
 	writersMutex sync.Mutex
 	writers      map[string]Writer
+
+	// writeMuxtex is used to serialise write operations.
+	writeMutex sync.Mutex
 }
 
 // NewLoggers returns a new Context with no writers set.
@@ -115,6 +118,8 @@ func (c *Context) ResetLoggerLevels() {
 }
 
 func (c *Context) write(entry Entry) {
+	c.writeMutex.Lock()
+	defer c.writeMutex.Unlock()
 	for _, writer := range c.getWriters() {
 		writer.Write(entry)
 	}
