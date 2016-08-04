@@ -100,6 +100,8 @@ func (c *Context) CompleteConfig() Config {
 
 // ApplyConfig configures the logging modules according to the provided config.
 func (c *Context) ApplyConfig(config Config) {
+	c.modulesMutex.Lock()
+	defer c.modulesMutex.Unlock()
 	for name, level := range config {
 		module := c.getLoggerModule(name)
 		module.setLevel(level)
