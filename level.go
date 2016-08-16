@@ -69,6 +69,27 @@ func (level Level) String() string {
 	}
 }
 
+// Short returns a five character string to use in
+// aligned logging output.
+func (level Level) Short() string {
+	switch level {
+	case TRACE:
+		return "TRACE"
+	case DEBUG:
+		return "DEBUG"
+	case INFO:
+		return "INFO "
+	case WARNING:
+		return "WARN "
+	case ERROR:
+		return "ERROR"
+	case CRITICAL:
+		return "CRITC"
+	default:
+		return "     "
+	}
+}
+
 // get atomically gets the value of the given level.
 func (level *Level) get() Level {
 	return Level(atomic.LoadUint32((*uint32)(level)))
