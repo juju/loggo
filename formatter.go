@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -18,4 +19,20 @@ func DefaultFormatter(entry Entry) string {
 	// Just get the basename from the filename
 	filename := filepath.Base(entry.Filename)
 	return fmt.Sprintf("%s %s %s %s:%d %s", ts, entry.Level, entry.Module, filename, entry.Line, entry.Message)
+}
+
+// TimeFormat is the time format used for the default writer.
+// This can be set with the environment variable LOGGO_TIME_FORMAT.
+var TimeFormat = initTimeFormat()
+
+func initTimeFormat() string {
+	format := os.Getenv("LOGGO_TIME_FORMAT")
+	if format != "" {
+		return format
+	}
+	return "15:04:05"
+}
+
+func formatTime(ts time.Time) string {
+	return ts.Format(TimeFormat)
 }

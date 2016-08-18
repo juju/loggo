@@ -49,9 +49,34 @@ logger, but have it emit all logging levels you need to do the following.
 ``` go
 const DefaultWriterName = "default"
 ```
-DefaultWriterName is the name of the writer default writer for
+DefaultWriterName is the name of the default writer for
 a Context.
 
+
+## Variables
+``` go
+var (
+    // SeverityColor defines the colors for the levels output by the ColorWriter.
+    SeverityColor = map[Level]*ansiterm.Context{
+        TRACE:   ansiterm.Foreground(ansiterm.Default),
+        DEBUG:   ansiterm.Foreground(ansiterm.Green),
+        INFO:    ansiterm.Foreground(ansiterm.BrightBlue),
+        WARNING: ansiterm.Foreground(ansiterm.Yellow),
+        ERROR:   ansiterm.Foreground(ansiterm.BrightRed),
+        CRITICAL: &ansiterm.Context{
+            Foreground: ansiterm.White,
+            Background: ansiterm.Red,
+        },
+    }
+    // LocationColor defines the colors for the location output by the ColorWriter.
+    LocationColor = ansiterm.Foreground(ansiterm.BrightBlue)
+)
+```
+``` go
+var TimeFormat = initTimeFormat()
+```
+TimeFormat is the time format used for the default writer.
+This can be set with the environment variable LOGGO_TIME_FORMAT.
 
 
 ## func ConfigureLoggers
@@ -77,7 +102,10 @@ func DefaultFormatter(entry Entry) string
 ```
 DefaultFormatter returns the parameters separated by spaces except for
 filename and line which are separated by a colon.  The timestamp is shown
-to second resolution in UTC.
+to second resolution in UTC. For example:
+
+
+	2016-07-02 15:04:05
 
 
 ## func LoggerInfo
@@ -94,17 +122,19 @@ be included.
 ``` go
 func RegisterWriter(name string, writer Writer) error
 ```
-RegisterWriter adds the writer to the list of writers to the DefaultContext
+RegisterWriter adds the writer to the list of writers in the DefaultContext
 that get notified when logging.  If there is already a registered writer
 with that name, an error is returned.
 
 
-## func ResetLoggers
+## func ResetLogging
 ``` go
-func ResetLoggers()
+func ResetLogging()
 ```
 ResetLogging iterates through the known modules and sets the levels of all
-to UNSPECIFIED, except for <root> which is set to WARNING.
+to UNSPECIFIED, except for <root> which is set to WARNING. The call also
+removes all writers in the DefaultContext and puts the original default
+writer back as the only writer.
 
 
 ## func ResetWriters
@@ -129,17 +159,17 @@ Config is a mapping of logger module names to logging severity levels.
 
 
 
-### func ParseConfigurationString
+### func ParseConfigString
 ``` go
-func ParseConfigurationString(specification string) (Config, error)
+func ParseConfigString(specification string) (Config, error)
 ```
-ParseConfigurationString parses a logger configuration string into a map of
-logger names and their associated log level. This method is provided to
-allow other programs to pre-validate a configuration string rather than
-just calling ConfigureLoggers.
+ParseConfigString parses a logger configuration string into a map of logger
+names and their associated log level. This method is provided to allow
+other programs to pre-validate a configuration string rather than just
+calling ConfigureLoggers.
 
-Loggers are colon- or semicolon-separated; each module is specified as
-<modulename>=<level>.  White space outside of module names and levels is
+Logging modules are colon- or semicolon-separated; each module is specified
+as <modulename>=<level>.  White space outside of module names and levels is
 ignored.  The root module is specified with the name "<root>".
 
 As a special case, a log level may be specified on its own.
@@ -159,7 +189,7 @@ An example specification:
 func (c Config) String() string
 ```
 String returns a logger configuration string that may be parsed
-using ParseLoggersConfig.
+using ParseConfigurationString.
 
 
 
@@ -189,9 +219,9 @@ DefaultContext returns the global default logging context.
 
 ### func NewContext
 ``` go
-func NewContext(rootLevel Level, defaultWriter Writer) *Context
+func NewContext(rootLevel Level) *Context
 ```
-NewLoggers returns a new Context with a possible default writer set.
+NewLoggers returns a new Context with no writers set.
 If the root level is UNSPECIFIED, WARNING is used.
 
 
@@ -201,7 +231,7 @@ If the root level is UNSPECIFIED, WARNING is used.
 ``` go
 func (c *Context) AddWriter(name string, writer Writer) error
 ```
-AddWriter adds an writer to the list to be called for each logging call.
+AddWriter adds a writer to the list to be called for each logging call.
 The name cannot be empty, and the writer cannot be nil. If an existing
 writer exists with the specified name, an error is returned.
 
@@ -256,7 +286,7 @@ returned.
 ``` go
 func (c *Context) ReplaceWriter(name string, writer Writer) (Writer, error)
 ```
-ReplaceWriter is a convenience function that does the equivalent of RemoveWriter
+ReplaceWriter is a convenience method that does the equivalent of RemoveWriter
 followed by AddWriter with the same name. The replaced writer is returned.
 
 
@@ -274,8 +304,7 @@ levels of all to UNSPECIFIED, except for <root> which is set to WARNING.
 ``` go
 func (c *Context) ResetWriters()
 ```
-ResetWriters is generally only used in testing and removes all the writers, and
-adds back in the default writer if one was specified when the Context was created.
+ResetWriters is generally only used in testing and removes all the writers.
 
 
 
@@ -343,6 +372,15 @@ func ParseLevel(level string) (Level, bool)
 ParseLevel converts a string representation of a logging level to a
 Level. It returns the level and whether it was valid or not.
 
+
+
+
+### func (Level) Short
+``` go
+func (level Level) Short() string
+```
+Short returns a five character string to use in
+aligned logging output.
 
 
 
@@ -601,12 +639,11 @@ Write saves the params as members in the TestLogValues struct appended to the Lo
 ## type Writer
 ``` go
 type Writer interface {
-    // Write writes a message to the Writer with the given
-    // level and module name. The filename and line hold
-    // the file name and line number of the code that is
-    // generating the log message; the time stamp holds
-    // the time the log message was generated, and
-    // message holds the log message itself.
+    // Write writes a message to the Writer with the given level and module
+    // name. The filename and line hold the file name and line number of the
+    // code that is generating the log message; the time stamp holds the time
+    // the log message was generated, and message holds the log message
+    // itself.
     Write(entry Entry)
 }
 ```
@@ -620,21 +657,29 @@ Writer is implemented by any recipient of log messages.
 
 
 
+### func NewColorWriter
+``` go
+func NewColorWriter(writer io.Writer) Writer
+```
+NewColorWriter will write out colored severity levels if the writer is
+outputting to a terminal.
+
+
 ### func NewMinimumLevelWriter
 ``` go
 func NewMinimumLevelWriter(writer Writer, minLevel Level) Writer
 ```
 NewMinLevelWriter returns a Writer that will only pass on the Write calls
-to the provided writer if the log level is at or above the specified minimul level.
+to the provided writer if the log level is at or above the specified
+minimum level.
 
 
 ### func NewSimpleWriter
 ``` go
 func NewSimpleWriter(writer io.Writer, formatter func(entry Entry) string) Writer
 ```
-NewSimpleWriter returns a new writer that writes
-log messages to the given io.Writer formatting the
-messages with the given formatter.
+NewSimpleWriter returns a new writer that writes log messages to the given
+io.Writer formatting the messages with the given formatter.
 
 
 ### func RemoveWriter
