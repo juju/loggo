@@ -20,6 +20,12 @@ type Logger struct {
 	impl *module
 }
 
+func (logger Logger) TimeTrack(level Level, start time.Time, name string) {
+	elapsed := time.Since(start)
+	message := fmt.Sprintf("%s took %s", name, elapsed)
+	logger.Logf(level, message)
+}
+
 func (logger Logger) getModule() *module {
 	if logger.impl == nil {
 		return defaultContext.root
