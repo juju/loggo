@@ -38,4 +38,6 @@ func main() {
 	SecondDebug("second debug")
 	SecondTrace("second trace")
 
+	FirstTrack("first track")
+
 }
