@@ -42,6 +42,6 @@ To make loggo produce colored output, you can do the following,
 having imported github.com/juju/loggo/loggocolor:
 
 	loggo.RemoveWriter("default")
-	loggo.RegisterWriter("default", loggocolorNewWriter(os.Stderr))
+	loggo.RegisterWriter("default", loggocolor.NewWriter(os.Stderr))
 */
 package loggo
