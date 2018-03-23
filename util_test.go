@@ -60,7 +60,7 @@ func setLocationsForTags(filename string) {
 		if j := strings.Index(line, "//tag "); j >= 0 {
 			tag := line[j+len("//tag "):]
 			if _, found := tagToLocation[tag]; found {
-				panic(fmt.Errorf("tag %q already processed previously"))
+				panic(fmt.Errorf("tag %q already processed previously", tag))
 			}
 			tagToLocation[tag] = Location{file: filename, line: i + 1}
 		}
