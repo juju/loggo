@@ -137,3 +137,46 @@ func (s *LoggerSuite) TestLevelsInherited(c *gc.C) {
 	c.Assert(second.LogLevel(), gc.Equals, loggo.INFO)
 	c.Assert(second.EffectiveLogLevel(), gc.Equals, loggo.INFO)
 }
+
+func (s *LoggerSuite) TestParent(c *gc.C) {
+	logger := loggo.GetLogger("a.b.c")
+	b := logger.Parent()
+	a := b.Parent()
+	root := a.Parent()
+
+	c.Check(b.Name(), gc.Equals, "a.b")
+	c.Check(a.Name(), gc.Equals, "a")
+	c.Check(root.Name(), gc.Equals, "<root>")
+	c.Check(root.Parent(), gc.Equals, root)
+}
+
+func (s *LoggerSuite) TestParentSameContext(c *gc.C) {
+	ctx := loggo.NewContext(loggo.DEBUG)
+
+	logger := ctx.GetLogger("a.b.c")
+	b := logger.Parent()
+
+	c.Check(b, gc.Equals, ctx.GetLogger("a.b"))
+	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
+}
+
+func (s *LoggerSuite) TestChild(c *gc.C) {
+	root := loggo.GetLogger("")
+
+	a := root.Child("a")
+	logger := a.Child("b.c")
+
+	c.Check(a.Name(), gc.Equals, "a")
+	c.Check(logger.Name(), gc.Equals, "a.b.c")
+	c.Check(logger.Parent(), gc.Equals, a.Child("b"))
+}
+
+func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
+	ctx := loggo.NewContext(loggo.DEBUG)
+
+	logger := ctx.GetLogger("a")
+	b := logger.Child("b")
+
+	c.Check(b, gc.Equals, ctx.GetLogger("a.b"))
+	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
+}
