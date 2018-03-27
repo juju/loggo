@@ -321,6 +321,23 @@ func (*ContextSuite) TestMultipleWriters(c *gc.C) {
 	checkLogEntries(c, third.Log(), expected)
 }
 
+func (*ContextSuite) TestWriter(c *gc.C) {
+	first := &writer{name: "first"}
+	second := &writer{name: "second"}
+	context := loggo.NewContext(loggo.TRACE)
+	err := context.AddWriter("first", first)
+	c.Assert(err, gc.IsNil)
+	err = context.AddWriter("second", second)
+	c.Assert(err, gc.IsNil)
+
+	c.Check(context.Writer("unknown"), gc.IsNil)
+	c.Check(context.Writer("first"), gc.Equals, first)
+	c.Check(context.Writer("second"), gc.Equals, second)
+
+	c.Check(first, gc.Not(gc.Equals), second)
+
+}
+
 type writer struct {
 	loggo.TestWriter
 	// The name exists to discriminate writer equality.
