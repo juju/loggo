@@ -52,7 +52,7 @@ func (*ConfigSuite) TestParseConfigValue(c *gc.C) {
 	}
 }
 
-func (*ConfigSuite) TestPaarseConfigurationString(c *gc.C) {
+func (*ConfigSuite) TestParseConfigurationString(c *gc.C) {
 	for i, test := range []struct {
 		configuration string
 		expected      Config

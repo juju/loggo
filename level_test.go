@@ -39,6 +39,12 @@ var parseLevelTests = []struct {
 	str:   "INFO",
 	level: loggo.INFO,
 }, {
+	str:   "notE",
+	level: loggo.NOTICE,
+}, {
+	str:   "NoTICE",
+	level: loggo.NOTICE,
+}, {
 	str:   "warn",
 	level: loggo.WARNING,
 }, {
@@ -60,19 +66,35 @@ var parseLevelTests = []struct {
 	str:   "critical",
 	level: loggo.CRITICAL,
 }, {
-	str:  "not_specified",
-	fail: true,
+	str:   "Alert",
+	level: loggo.ALERT,
 }, {
-	str:  "other",
-	fail: true,
+	str:   "EMERG",
+	level: loggo.EMERGENCY,
 }, {
-	str:  "",
-	fail: true,
+	str:   "EMERGENCY",
+	level: loggo.EMERGENCY,
+}, {
+	str:   "Emerg",
+	level: loggo.EMERGENCY,
+}, {
+	str:   "not_specified",
+	level: loggo.UNSPECIFIED,
+	fail:  true,
+}, {
+	str:   "other",
+	level: loggo.UNSPECIFIED,
+	fail:  true,
+}, {
+	str:   "",
+	level: loggo.UNSPECIFIED,
+	fail:  true,
 }}
 
 func (s *LevelSuite) TestParseLevel(c *gc.C) {
 	for _, test := range parseLevelTests {
 		level, ok := loggo.ParseLevel(test.str)
+		c.Logf("str=%s, level=%v, ok=%v", test.str, level, ok)
 		c.Assert(level, gc.Equals, test.level)
 		c.Assert(ok, gc.Equals, !test.fail)
 	}
@@ -83,10 +105,13 @@ var levelStringValueTests = map[loggo.Level]string{
 	loggo.DEBUG:       "DEBUG",
 	loggo.TRACE:       "TRACE",
 	loggo.INFO:        "INFO",
+	loggo.NOTICE:      "NOTICE",
 	loggo.WARNING:     "WARNING",
 	loggo.ERROR:       "ERROR",
 	loggo.CRITICAL:    "CRITICAL",
-	loggo.Level(42):   "<unknown>", // other values are unknown
+	loggo.ALERT:       "ALERT",
+	loggo.EMERGENCY:   "EMERGENCY",
+	loggo.Level(42):   "UNKNOWN", // other values are unknown
 }
 
 func (s *LevelSuite) TestLevelStringValue(c *gc.C) {

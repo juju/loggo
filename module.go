@@ -26,10 +26,14 @@ func (module *module) Name() string {
 }
 
 func (m *module) willWrite(level Level) bool {
-	if level < TRACE || level > CRITICAL {
+	if level == UNSPECIFIED {
 		return false
 	}
-	return level >= m.getEffectiveLogLevel()
+	if _, ok := Levels[level]; !ok {
+		return false
+	}
+
+	return level <= m.getEffectiveLogLevel()
 }
 
 func (module *module) getEffectiveLogLevel() Level {
