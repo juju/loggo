@@ -38,11 +38,12 @@ func (*ContextSuite) TestNewContextRootLevel(c *gc.C) {
 		level:    loggo.Level(42),
 		expected: loggo.WARNING,
 	}} {
-		c.Log("%d: %s", i, test.level)
+		c.Logf("Iteration %d: level=%v, expected=%v", i, test.level, test.expected)
 		context := loggo.NewContext(test.level)
 		cfg := context.Config()
 		c.Check(cfg, gc.HasLen, 1)
 		value, found := cfg[""]
+		c.Logf("  value=%v found=%v", value, found)
 		c.Check(found, gc.Equals, true)
 		c.Check(value, gc.Equals, test.expected)
 	}

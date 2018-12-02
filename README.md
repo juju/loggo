@@ -349,19 +349,38 @@ Level holds a severity level.
 
 ``` go
 const (
-    UNSPECIFIED Level = iota
-    TRACE
-    DEBUG
-    INFO
-    WARNING
-    ERROR
-    CRITICAL
+	UNSPECIFIED Level = 0000
+	EMERGENCY   Level = 0001
+	ALERT       Level = 1000
+	CRITICAL    Level = 2000
+	ERROR       Level = 3000
+	WARNING     Level = 4000
+	NOTICE      Level = 5000
+	INFO        Level = 6000
+	DEBUG       Level = 7000
+	TRACE       Level = 8000
 )
 ```
-The severity levels. Higher values are more considered more
-important.
+The severity levels. **Lower values** are more considered more
+important, as with syslog. The levels have been synchronized with
+[syslog severity levels](https://en.wikipedia.org/wiki/Syslog#Severity_level) with
+addition of the `TRACE` level.
 
-
+Custom levels may be defined by overriding the `loggo.Levels` map:
+``` go
+var Levels = map[Level]LevelType{
+	UNSPECIFIED: {"", UNSPECIFIED, "UNSPECIFIED"},
+	TRACE:       {"TRACE", TRACE, "TRACE"},
+	DEBUG:       {"DEBUG", DEBUG, "DEBUG"},         
+	INFO:        {"INFO", INFO, "INFO"},            
+	NOTICE:      {"NOTE", NOTICE, "NOTICE"},        
+	WARNING:     {"WARN", WARNING, "WARNING"},      
+	ERROR:       {"ERROR", ERROR, "ERROR"},         
+	CRITICAL:    {"CRIT", CRITICAL, "CRITICAL"},    
+	ALERT:       {"ALERT", ALERT, "ALERT"},         
+	EMERGENCY:   {"EMERG", EMERGENCY, "EMERGENCY"}, 
+}
+```
 
 
 
@@ -567,6 +586,11 @@ the effective log level of the logger.
 Note that the writers may also filter out messages that
 are less than their registered minimum severity level.
 
+**Please note:** As levels *NOTICE*, *ALERT* and *EMERGENCY* are seldom used,
+there are no corresponding `Noticef`, `Alertf` and `Emergencyf` methods. Use
+the method `Logf(level, ...)` instead.
+
+This method is also appropriate if you define your custom log levels.
 
 
 ### func (Logger) Name

@@ -28,9 +28,12 @@ type Context struct {
 // NewLoggers returns a new Context with no writers set.
 // If the root level is UNSPECIFIED, WARNING is used.
 func NewContext(rootLevel Level) *Context {
-	if rootLevel < TRACE || rootLevel > CRITICAL {
+	if rootLevel == UNSPECIFIED {
+		rootLevel = WARNING
+	} else if _, ok := Levels[rootLevel]; !ok {
 		rootLevel = WARNING
 	}
+
 	context := &Context{
 		modules: make(map[string]*module),
 		writers: make(map[string]Writer),
