@@ -5,8 +5,8 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/juju/loggo"
 	"github.com/juju/ansiterm"
+	"github.com/juju/loggo"
 )
 
 var (
@@ -34,6 +34,14 @@ type colorWriter struct {
 // outputting to a terminal.
 func NewWriter(writer io.Writer) loggo.Writer {
 	return &colorWriter{ansiterm.NewWriter(writer)}
+}
+
+// NewcolorWriter will write out colored severity levels whether or not the
+// writer is outputting to a terminal.
+func NewColorWriter(writer io.Writer) loggo.Writer {
+	w := ansiterm.NewWriter(writer)
+	w.SetColorCapable(true)
+	return &colorWriter{w}
 }
 
 // Write implements Writer.
