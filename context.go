@@ -25,7 +25,7 @@ type Context struct {
 	writeMutex sync.Mutex
 }
 
-// NewLoggers returns a new Context with no writers set.
+// NewContext returns a new Context with no writers set.
 // If the root level is UNSPECIFIED, WARNING is used.
 func NewContext(rootLevel Level) *Context {
 	if rootLevel < TRACE || rootLevel > CRITICAL {
