@@ -38,7 +38,7 @@ func (*ContextSuite) TestNewContextRootLevel(c *gc.C) {
 		level:    loggo.Level(42),
 		expected: loggo.WARNING,
 	}} {
-		c.Log("%d: %s", i, test.level)
+		c.Logf("%d: %s", i, test.level)
 		context := loggo.NewContext(test.level)
 		cfg := context.Config()
 		c.Check(cfg, gc.HasLen, 1)
@@ -150,6 +150,14 @@ func (*ContextSuite) TestNewLoggerAddsConfig(c *gc.C) {
 		"test":        loggo.UNSPECIFIED,
 		"test.module": loggo.UNSPECIFIED,
 	})
+}
+
+func (*ContextSuite) TestConfigureLoggers(c *gc.C) {
+	context := loggo.NewContext(loggo.INFO)
+	err := context.ConfigureLoggers("testing.module=debug")
+	c.Assert(err, gc.IsNil)
+	expected := "<root>=INFO;testing.module=DEBUG"
+	c.Assert(context.Config().String(), gc.Equals, expected)
 }
 
 func (*ContextSuite) TestApplyNilConfig(c *gc.C) {
