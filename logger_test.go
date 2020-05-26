@@ -180,3 +180,22 @@ func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
 	c.Check(b, gc.Equals, ctx.GetLogger("a.b"))
 	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
 }
+
+func (s *LoggerSuite) TestRoot(c *gc.C) {
+	logger := loggo.GetLogger("a.b.c")
+	root := logger.Root()
+
+	c.Check(root.Name(), gc.Equals, "<root>")
+	c.Check(root.Child("a.b.c"), gc.Equals, logger)
+}
+
+func (s *LoggerSuite) TestRootSameContext(c *gc.C) {
+	ctx := loggo.NewContext(loggo.DEBUG)
+
+	logger := ctx.GetLogger("a.b.c")
+	root := logger.Root()
+
+	c.Check(root.Name(), gc.Equals, "<root>")
+	c.Check(root.Child("a.b.c"), gc.Equals, logger)
+	c.Check(root.Child("a.b.c"), gc.Not(gc.Equals), loggo.GetLogger("a.b.c"))
+}
