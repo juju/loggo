@@ -17,7 +17,7 @@ var (
 		loggo.INFO:    ansiterm.Foreground(ansiterm.BrightBlue),
 		loggo.WARNING: ansiterm.Foreground(ansiterm.Yellow),
 		loggo.ERROR:   ansiterm.Foreground(ansiterm.BrightRed),
-		loggo.CRITICAL: &ansiterm.Context{
+		loggo.CRITICAL: {
 			Foreground: ansiterm.White,
 			Background: ansiterm.Red,
 		},

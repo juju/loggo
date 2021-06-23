@@ -97,6 +97,13 @@ func (*ConfigSuite) TestPaarseConfigurationString(c *gc.C) {
 			"foo.bar": CRITICAL,
 		},
 	}, {
+		configuration: "module=info; a.*.module=debug; b.*.module=warning",
+		expected: Config{
+			"module":     INFO,
+			"a.*.module": DEBUG,
+			"b.*.module": WARNING,
+		},
+	}, {
 		configuration: "foo;bar",
 		err:           `config value expected '=', found "foo"`,
 	}, {

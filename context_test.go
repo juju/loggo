@@ -351,3 +351,26 @@ type writer struct {
 	// The name exists to discriminate writer equality.
 	name string
 }
+
+func (*ContextSuite) TestGetLoggerWildcard(c *gc.C) {
+	writer := &loggo.TestWriter{}
+
+	context := loggo.NewContext(loggo.DEBUG)
+	context.AddWriter("mock", writer)
+
+	fullpath := context.GetLogger("a.name.module")
+	wildcard := context.GetLogger("a.*.module")
+
+	c.Assert(fullpath.Name(), gc.Equals, "a.name.module")
+	c.Assert(wildcard.Name(), gc.Equals, "a.*.module")
+
+	fullpath.Criticalf("hello")
+	wildcard.Criticalf("world")
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 2)
+	c.Assert(logs[0].Message, gc.Equals, "hello")
+	c.Assert(logs[0].Module, gc.Equals, "a.name.module")
+	c.Assert(logs[1].Message, gc.Equals, "world")
+	c.Assert(logs[1].Module, gc.Equals, "a.name.module")
+}

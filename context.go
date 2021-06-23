@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -12,11 +13,11 @@ import (
 // Context produces loggers for a hierarchy of modules. The context holds
 // a collection of hierarchical loggers and their writers.
 type Context struct {
-	root *module
+	root module
 
 	// Perhaps have one mutex?
 	modulesMutex sync.Mutex
-	modules      map[string]*module
+	modules      map[string]module
 
 	writersMutex sync.Mutex
 	writers      map[string]Writer
@@ -32,14 +33,14 @@ func NewContext(rootLevel Level) *Context {
 		rootLevel = WARNING
 	}
 	context := &Context{
-		modules: make(map[string]*module),
+		modules: make(map[string]module),
 		writers: make(map[string]Writer),
 	}
-	context.root = &module{
-		level:   rootLevel,
+	context.root = &single{
+		level:   &rootLevel,
 		context: context,
 	}
-	context.root.parent = context.root
+	context.root.SetParent(context.root)
 	context.modules[""] = context.root
 	return context
 }
@@ -48,25 +49,57 @@ func NewContext(rootLevel Level) *Context {
 // its parents if necessary.
 func (c *Context) GetLogger(name string) Logger {
 	name = strings.TrimSpace(strings.ToLower(name))
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
-	return Logger{c.getLoggerModule(name)}
+
+	return Logger{
+		impl: c.getLoggerModule(name),
+	}
 }
 
-func (c *Context) getLoggerModule(name string) *module {
+func (c *Context) getLoggerModule(name string) module {
 	if name == rootString {
 		name = ""
 	}
+	// Located the exact module by name
 	impl, found := c.modules[name]
 	if found {
 		return impl
 	}
-	parentName := ""
+	// Expand any wildcards to find the module.
+	if strings.Contains(name, "*") {
+		if re, err := regexp.Compile(strings.ReplaceAll(name, "*", "\\w+[^.]")); err == nil {
+			var modules []module
+			for name, module := range c.modules {
+				if re.MatchString(name) {
+					modules = append(modules, module)
+				}
+			}
+			if len(modules) == 0 {
+				// Not sure what to do here?
+				panic("whoops")
+			}
+			return &multiple{
+				name:    name,
+				modules: modules,
+			}
+		}
+	}
+
+	var parentName string
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}
+
 	parent := c.getLoggerModule(parentName)
-	impl = &module{name, UNSPECIFIED, parent, c}
+	level := UNSPECIFIED
+	impl = &single{
+		name:    name,
+		level:   &level,
+		parent:  parent,
+		context: c,
+	}
 	c.modules[name] = impl
 	return impl
 }
@@ -75,12 +108,14 @@ func (c *Context) getLoggerModule(name string) *module {
 // with UNSPECIFIED level will not be included.
 func (c *Context) Config() Config {
 	result := make(Config)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 
 	for name, module := range c.modules {
-		if module.level != UNSPECIFIED {
-			result[name] = module.level
+		level := *module.Level()
+		if level != UNSPECIFIED {
+			result[name] = level
 		}
 	}
 	return result
@@ -90,11 +125,12 @@ func (c *Context) Config() Config {
 // even if that level is UNSPECIFIED.
 func (c *Context) CompleteConfig() Config {
 	result := make(Config)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 
 	for name, module := range c.modules {
-		result[name] = module.level
+		result[name] = *module.Level()
 	}
 	return result
 }
@@ -103,9 +139,10 @@ func (c *Context) CompleteConfig() Config {
 func (c *Context) ApplyConfig(config Config) {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	for name, level := range config {
 		module := c.getLoggerModule(name)
-		module.setLevel(level)
+		module.SetLevel(level)
 	}
 }
 
@@ -114,15 +151,17 @@ func (c *Context) ApplyConfig(config Config) {
 func (c *Context) ResetLoggerLevels() {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	// Setting the root module to UNSPECIFIED will set it to WARNING.
 	for _, module := range c.modules {
-		module.setLevel(UNSPECIFIED)
+		module.SetLevel(UNSPECIFIED)
 	}
 }
 
 func (c *Context) write(entry Entry) {
 	c.writeMutex.Lock()
 	defer c.writeMutex.Unlock()
+
 	for _, writer := range c.getWriters() {
 		writer.Write(entry)
 	}
@@ -131,6 +170,7 @@ func (c *Context) write(entry Entry) {
 func (c *Context) getWriters() []Writer {
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	var result []Writer
 	for _, writer := range c.writers {
 		result = append(result, writer)
@@ -148,8 +188,10 @@ func (c *Context) AddWriter(name string, writer Writer) error {
 	if writer == nil {
 		return fmt.Errorf("writer cannot be nil")
 	}
+
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	if _, found := c.writers[name]; found {
 		return fmt.Errorf("context already has a writer named %q", name)
 	}
@@ -162,6 +204,7 @@ func (c *Context) AddWriter(name string, writer Writer) error {
 func (c *Context) Writer(name string) Writer {
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	return c.writers[name]
 }
 
@@ -171,6 +214,7 @@ func (c *Context) Writer(name string) Writer {
 func (c *Context) RemoveWriter(name string) (Writer, error) {
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	reg, found := c.writers[name]
 	if !found {
 		return nil, fmt.Errorf("context has no writer named %q", name)
@@ -188,8 +232,10 @@ func (c *Context) ReplaceWriter(name string, writer Writer) (Writer, error) {
 	if writer == nil {
 		return nil, fmt.Errorf("writer cannot be nil")
 	}
+
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	reg, found := c.writers[name]
 	if !found {
 		return nil, fmt.Errorf("context has no writer named %q", name)
@@ -203,6 +249,7 @@ func (c *Context) ReplaceWriter(name string, writer Writer) (Writer, error) {
 func (c *Context) ResetWriters() {
 	c.writersMutex.Lock()
 	defer c.writersMutex.Unlock()
+
 	c.writers = make(map[string]Writer)
 }
 
