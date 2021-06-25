@@ -15,6 +15,7 @@ type module struct {
 	level   Level
 	parent  *module
 	context *Context
+	labels  map[string]struct{}
 }
 
 // Name returns the module's name.
@@ -42,7 +43,6 @@ func (module *module) getEffectiveLogLevel() Level {
 		}
 		module = module.parent
 	}
-	panic("unreachable")
 }
 
 // setLevel sets the severity level of the given module.

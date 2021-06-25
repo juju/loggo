@@ -19,7 +19,7 @@ func (c Config) String() string {
 		return ""
 	}
 	// output in alphabetical order.
-	names := []string{}
+	var names []string
 	for name := range c {
 		names = append(names, name)
 	}
@@ -45,6 +45,10 @@ func parseConfigValue(value string) (string, Level, error) {
 	name := strings.TrimSpace(pair[0])
 	if name == "" {
 		return "", UNSPECIFIED, fmt.Errorf("config value %q has missing module name", value)
+	}
+
+	if isConfigLabel(name) && strings.Contains(name, ".") {
+		return "", UNSPECIFIED, fmt.Errorf("config label should not contain '.', found %q", name)
 	}
 
 	levelStr := strings.TrimSpace(pair[1])
@@ -73,6 +77,7 @@ func parseConfigValue(value string) (string, Level, error) {
 //
 // An example specification:
 //	`<root>=ERROR; foo.bar=WARNING`
+//	`[LABEL]=ERROR`
 func ParseConfigString(specification string) (Config, error) {
 	specification = strings.TrimSpace(specification)
 	if specification == "" {
@@ -93,4 +98,12 @@ func ParseConfigString(specification string) (Config, error) {
 		cfg[name] = level
 	}
 	return cfg, nil
+}
+
+func isConfigLabel(s string) bool {
+	name := strings.TrimSpace(s)
+	if len(name) < 3 {
+		return false
+	}
+	return name[0] == '[' && name[len(name)-1] == ']'
 }
