@@ -31,6 +31,28 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 		Line:      12,
 		Timestamp: now,
 		Message:   "a message",
+		Labels:    nil,
+	})
+
+	c.Check(buf.String(), gc.Equals, "<< a message >>\n")
+}
+
+func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *gc.C) {
+	now := time.Now()
+	formatter := func(entry loggo.Entry) string {
+		return "<< " + entry.Message + " >>"
+	}
+	buf := &bytes.Buffer{}
+
+	writer := loggo.NewSimpleWriter(buf, formatter)
+	writer.Write(loggo.Entry{
+		Level:     loggo.INFO,
+		Module:    "test",
+		Filename:  "somefile.go",
+		Line:      12,
+		Timestamp: now,
+		Message:   "a message",
+		Labels:    []string{"ONE", "TWO"},
 	})
 
 	c.Check(buf.String(), gc.Equals, "<< a message >>\n")

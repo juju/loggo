@@ -128,12 +128,14 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 	if len(args) > 0 {
 		formattedMessage = fmt.Sprintf(message, args...)
 	}
+
 	module.write(Entry{
 		Level:     level,
 		Filename:  file,
 		Line:      line,
 		Timestamp: now,
 		Message:   formattedMessage,
+		Labels:    module.labels,
 	})
 }
 

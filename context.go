@@ -81,11 +81,12 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 		labelMap[label] = struct{}{}
 	}
 	impl = &module{
-		name:    name,
-		level:   UNSPECIFIED,
-		parent:  parent,
-		context: c,
-		labels:  labelMap,
+		name:         name,
+		level:        UNSPECIFIED,
+		parent:       parent,
+		context:      c,
+		labels:       labels,
+		labelsLookup: labelMap,
 	}
 	c.modules[name] = impl
 	return impl
@@ -99,7 +100,7 @@ func (c *Context) getLoggerModulesByLabel(label string) []*module {
 			continue
 		}
 
-		if _, ok := mod.labels[label]; ok {
+		if _, ok := mod.labelsLookup[label]; ok {
 			modules = append(modules, mod)
 		}
 	}
