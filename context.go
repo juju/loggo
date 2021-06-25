@@ -140,14 +140,14 @@ func (c *Context) ApplyConfig(config Config) {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 	for name, level := range config {
-		if !isConfigLabel(name) {
+		label := extractConfigLabel(name)
+		if label == "" {
 			module := c.getLoggerModule(name, nil)
 			module.setLevel(level)
 			continue
 		}
 
 		// Config contains a named label, use that for selecting the loggers.
-		label := name[1 : len(name)-1]
 		modules := c.getLoggerModulesByLabel(label)
 		for _, module := range modules {
 			module.setLevel(level)

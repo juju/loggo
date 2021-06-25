@@ -47,7 +47,7 @@ func parseConfigValue(value string) (string, Level, error) {
 		return "", UNSPECIFIED, fmt.Errorf("config value %q has missing module name", value)
 	}
 
-	if isConfigLabel(name) && strings.Contains(name, ".") {
+	if extractConfigLabel(name) != "" && strings.Contains(name, ".") {
 		return "", UNSPECIFIED, fmt.Errorf("config label should not contain '.', found %q", name)
 	}
 
@@ -100,10 +100,13 @@ func ParseConfigString(specification string) (Config, error) {
 	return cfg, nil
 }
 
-func isConfigLabel(s string) bool {
+func extractConfigLabel(s string) string {
 	name := strings.TrimSpace(s)
-	if len(name) < 3 {
-		return false
+	if len(s) < 3 {
+		return ""
 	}
-	return name[0] == '[' && name[len(name)-1] == ']'
+	if name[0] == '[' && name[len(name)-1] == ']' {
+		return name[1 : len(name)-1]
+	}
+	return ""
 }
