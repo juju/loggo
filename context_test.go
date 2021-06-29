@@ -216,12 +216,12 @@ func (*ContextSuite) TestApplyConfigAdditive(c *gc.C) {
 
 func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
-	context.GetLogger("a.b", "ONE")
-	context.GetLogger("c.d", "ONE")
-	context.GetLogger("e", "TWO")
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
 
-	context.ApplyConfig(loggo.Config{"[ONE]": loggo.TRACE})
-	context.ApplyConfig(loggo.Config{"[TWO]": loggo.DEBUG})
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
 
 	c.Assert(context.Config(), gc.DeepEquals,
 		loggo.Config{
@@ -243,8 +243,8 @@ func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
 
 func (*ContextSuite) TestApplyConfigLabelsAddative(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
-	context.ApplyConfig(loggo.Config{"[ONE]": loggo.TRACE})
-	context.ApplyConfig(loggo.Config{"[TWO]": loggo.DEBUG})
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
 	c.Assert(context.Config(), gc.DeepEquals,
 		loggo.Config{
 			"": loggo.WARNING,
@@ -257,21 +257,19 @@ func (*ContextSuite) TestApplyConfigLabelsAddative(c *gc.C) {
 
 func (*ContextSuite) TestApplyConfigWithMalformedLabel(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
-	context.GetLogger("a.b", "ONE")
+	context.GetLogger("a.b", "one")
 
-	context.ApplyConfig(loggo.Config{"[ONE": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#ONE.1": loggo.TRACE})
 
 	c.Assert(context.Config(), gc.DeepEquals,
 		loggo.Config{
-			"":     loggo.WARNING,
-			"[ONE": loggo.TRACE,
+			"": loggo.WARNING,
 		})
 	c.Assert(context.CompleteConfig(), gc.DeepEquals,
 		loggo.Config{
-			"":     loggo.WARNING,
-			"a":    loggo.UNSPECIFIED,
-			"a.b":  loggo.UNSPECIFIED,
-			"[ONE": loggo.TRACE,
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.UNSPECIFIED,
 		})
 }
 
