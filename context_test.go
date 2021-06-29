@@ -214,6 +214,24 @@ func (*ContextSuite) TestApplyConfigAdditive(c *gc.C) {
 		})
 }
 
+func (*ContextSuite) TestGetAllLoggerLabels(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	labels := context.GetAllLoggerLabels()
+	c.Assert(labels, gc.DeepEquals, []string{"one", "two"})
+}
+
+func (*ContextSuite) TestGetAllLoggerLabelsWithApplyConfig(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+
+	labels := context.GetAllLoggerLabels()
+	c.Assert(labels, gc.DeepEquals, []string{})
+}
+
 func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.GetLogger("a.b", "one")

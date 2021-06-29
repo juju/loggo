@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -55,6 +56,26 @@ func (c *Context) GetLogger(name string, labels ...string) Logger {
 	return Logger{
 		impl: c.getLoggerModule(name, labels),
 	}
+}
+
+// GetAllLoggerLabels returns all the logger labels for a given context. The
+// names are unique and sorted before returned, to improve consistency.
+func (c *Context) GetAllLoggerLabels() []string {
+	c.modulesMutex.Lock()
+	defer c.modulesMutex.Unlock()
+
+	names := make(map[string]struct{})
+	for _, module := range c.modules {
+		for k, v := range module.labelsLookup {
+			names[k] = v
+		}
+	}
+	labels := make([]string, 0, len(names))
+	for name := range names {
+		labels = append(labels, name)
+	}
+	sort.Strings(labels)
+	return labels
 }
 
 func (c *Context) getLoggerModule(name string, labels []string) *module {
