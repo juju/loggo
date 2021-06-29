@@ -181,6 +181,17 @@ func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
 	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
 }
 
+func (s *LoggerSuite) TestChildSameContextWithLabels(c *gc.C) {
+	ctx := loggo.NewContext(loggo.DEBUG)
+
+	logger := ctx.GetLogger("a", "parent")
+	b := logger.Child("b", "child")
+
+	c.Check(ctx.GetAllLoggerLabels(), gc.DeepEquals, []string{"child", "parent"})
+	c.Check(logger.Labels(), gc.DeepEquals, []string{"parent"})
+	c.Check(b.Labels(), gc.DeepEquals, []string{"child"})
+}
+
 func (s *LoggerSuite) TestRoot(c *gc.C) {
 	logger := loggo.GetLogger("a.b.c")
 	root := logger.Root()
