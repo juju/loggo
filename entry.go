@@ -19,4 +19,6 @@ type Entry struct {
 	Timestamp time.Time
 	// Message is the formatted string from teh log call.
 	Message string
+	// Labels is the label associated with the log message.
+	Labels []string
 }

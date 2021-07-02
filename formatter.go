@@ -32,7 +32,3 @@ func initTimeFormat() string {
 	}
 	return "15:04:05"
 }
-
-func formatTime(ts time.Time) string {
-	return ts.Format(TimeFormat)
-}

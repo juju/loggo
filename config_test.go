@@ -37,6 +37,17 @@ func (*ConfigSuite) TestParseConfigValue(c *gc.C) {
 		value:  "<root> = info",
 		module: "",
 		level:  INFO,
+	}, {
+		value:  "#label = info",
+		module: "#label",
+		level:  INFO,
+	}, {
+		value:  "#LABEL = info",
+		module: "#label",
+		level:  INFO,
+	}, {
+		value: "#label.1 = info",
+		err:   `config label should not contain '.', found "#label.1"`,
 	}} {
 		c.Logf("%d: %s", i, test.value)
 		module, level, err := parseConfigValue(test.value)
@@ -72,6 +83,9 @@ func (*ConfigSuite) TestPaarseConfigurationString(c *gc.C) {
 	}, {
 		configuration: "<root>=DEBUG",
 		expected:      Config{"": DEBUG},
+	}, {
+		configuration: "#label=DEBUG",
+		expected:      Config{"#label": DEBUG},
 	}, {
 		configuration: "test.module=debug",
 		expected:      Config{"test.module": DEBUG},

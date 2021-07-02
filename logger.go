@@ -55,6 +55,19 @@ func (logger Logger) Child(name string) Logger {
 	return module.context.GetLogger(path)
 }
 
+// ChildWithLabels returns the Logger whose module name is the composed of this
+// Logger's name and the specified name with the correct associated labels.
+func (logger Logger) ChildWithLabels(name string, labels ...string) Logger {
+	module := logger.getModule()
+	path := module.name
+	if path == "" {
+		path = name
+	} else {
+		path += "." + name
+	}
+	return module.context.GetLogger(path, labels...)
+}
+
 // Name returns the logger's module name.
 func (logger Logger) Name() string {
 	return logger.getModule().Name()
@@ -63,6 +76,11 @@ func (logger Logger) Name() string {
 // LogLevel returns the configured min log level of the logger.
 func (logger Logger) LogLevel() Level {
 	return logger.getModule().level
+}
+
+// Labels returns the configured labels of the logger.
+func (logger Logger) Labels() []string {
+	return logger.getModule().labels
 }
 
 // EffectiveLogLevel returns the effective min log level of
@@ -128,12 +146,14 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 	if len(args) > 0 {
 		formattedMessage = fmt.Sprintf(message, args...)
 	}
+
 	module.write(Entry{
 		Level:     level,
 		Filename:  file,
 		Line:      line,
 		Timestamp: now,
 		Message:   formattedMessage,
+		Labels:    module.labels,
 	})
 }
 

@@ -214,6 +214,83 @@ func (*ContextSuite) TestApplyConfigAdditive(c *gc.C) {
 		})
 }
 
+func (*ContextSuite) TestGetAllLoggerLabels(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	labels := context.GetAllLoggerLabels()
+	c.Assert(labels, gc.DeepEquals, []string{"one", "two"})
+}
+
+func (*ContextSuite) TestGetAllLoggerLabelsWithApplyConfig(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+
+	labels := context.GetAllLoggerLabels()
+	c.Assert(labels, gc.DeepEquals, []string{})
+}
+
+func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a.b": loggo.TRACE,
+			"c.d": loggo.TRACE,
+			"e":   loggo.DEBUG,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.TRACE,
+			"c":   loggo.UNSPECIFIED,
+			"c.d": loggo.TRACE,
+			"e":   loggo.DEBUG,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigLabelsAddative(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"": loggo.WARNING,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"": loggo.WARNING,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigWithMalformedLabel(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+	context.GetLogger("a.b", "one")
+
+	context.ApplyConfig(loggo.Config{"#ONE.1": loggo.TRACE})
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"": loggo.WARNING,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.UNSPECIFIED,
+		})
+}
+
 func (*ContextSuite) TestResetLoggerLevels(c *gc.C) {
 	context := loggo.NewContext(loggo.DEBUG)
 	context.ApplyConfig(loggo.Config{"first.second": loggo.TRACE})

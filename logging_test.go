@@ -15,15 +15,19 @@ type LoggingSuite struct {
 	context *loggo.Context
 	writer  *writer
 	logger  loggo.Logger
+
+	// Test that labels get outputted to loggo.Entry
+	Labels []string
 }
 
 var _ = gc.Suite(&LoggingSuite{})
+var _ = gc.Suite(&LoggingSuite{Labels: []string{"ONE", "TWO"}})
 
 func (s *LoggingSuite) SetUpTest(c *gc.C) {
 	s.writer = &writer{}
 	s.context = loggo.NewContext(loggo.TRACE)
 	s.context.AddWriter("test", s.writer)
-	s.logger = s.context.GetLogger("test")
+	s.logger = s.context.GetLogger("test", s.Labels...)
 }
 
 func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
@@ -33,10 +37,10 @@ func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
 	s.logger.Infof("missing %s")
 
 	checkLogEntries(c, s.writer.Log(), []loggo.Entry{
-		{Level: loggo.INFO, Module: "test", Message: "simple"},
-		{Level: loggo.INFO, Module: "test", Message: "with args 42"},
-		{Level: loggo.INFO, Module: "test", Message: "working 100%"},
-		{Level: loggo.INFO, Module: "test", Message: "missing %s"},
+		{Level: loggo.INFO, Module: "test", Message: "simple", Labels: s.Labels},
+		{Level: loggo.INFO, Module: "test", Message: "with args 42", Labels: s.Labels},
+		{Level: loggo.INFO, Module: "test", Message: "working 100%", Labels: s.Labels},
+		{Level: loggo.INFO, Module: "test", Message: "missing %s", Labels: s.Labels},
 	})
 }
 
@@ -47,9 +51,9 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
 	end := time.Now()
 	entries := s.writer.Log()
 	checkLogEntries(c, entries, []loggo.Entry{
-		{Level: loggo.CRITICAL, Module: "test", Message: "something critical"},
-		{Level: loggo.ERROR, Module: "test", Message: "an error"},
-		{Level: loggo.WARNING, Module: "test", Message: "a warning message"},
+		{Level: loggo.CRITICAL, Module: "test", Message: "something critical", Labels: s.Labels},
+		{Level: loggo.ERROR, Module: "test", Message: "an error", Labels: s.Labels},
+		{Level: loggo.WARNING, Module: "test", Message: "a warning message", Labels: s.Labels},
 	})
 
 	for _, entry := range entries {

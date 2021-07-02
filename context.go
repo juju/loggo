@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -46,14 +47,38 @@ func NewContext(rootLevel Level) *Context {
 
 // GetLogger returns a Logger for the given module name, creating it and
 // its parents if necessary.
-func (c *Context) GetLogger(name string) Logger {
+func (c *Context) GetLogger(name string, labels ...string) Logger {
 	name = strings.TrimSpace(strings.ToLower(name))
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
-	return Logger{c.getLoggerModule(name)}
+
+	return Logger{
+		impl: c.getLoggerModule(name, labels),
+	}
 }
 
-func (c *Context) getLoggerModule(name string) *module {
+// GetAllLoggerLabels returns all the logger labels for a given context. The
+// names are unique and sorted before returned, to improve consistency.
+func (c *Context) GetAllLoggerLabels() []string {
+	c.modulesMutex.Lock()
+	defer c.modulesMutex.Unlock()
+
+	names := make(map[string]struct{})
+	for _, module := range c.modules {
+		for k, v := range module.labelsLookup {
+			names[k] = v
+		}
+	}
+	labels := make([]string, 0, len(names))
+	for name := range names {
+		labels = append(labels, name)
+	}
+	sort.Strings(labels)
+	return labels
+}
+
+func (c *Context) getLoggerModule(name string, labels []string) *module {
 	if name == rootString {
 		name = ""
 	}
@@ -65,10 +90,42 @@ func (c *Context) getLoggerModule(name string) *module {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}
-	parent := c.getLoggerModule(parentName)
-	impl = &module{name, UNSPECIFIED, parent, c}
+	// Labels don't apply to the parent, otherwise <root> would have all labels.
+	// Selection of the label would give you all loggers again, which isn't what
+	// you want.
+	parent := c.getLoggerModule(parentName, nil)
+
+	// Ensure that we create a new logger module for the name, that includes the
+	// label.
+	labelMap := map[string]struct{}{}
+	for _, label := range labels {
+		labelMap[label] = struct{}{}
+	}
+	impl = &module{
+		name:         name,
+		level:        UNSPECIFIED,
+		parent:       parent,
+		context:      c,
+		labels:       labels,
+		labelsLookup: labelMap,
+	}
 	c.modules[name] = impl
 	return impl
+}
+
+// getLoggerModulesByLabel returns modules that have the associated label.
+func (c *Context) getLoggerModulesByLabel(label string) []*module {
+	var modules []*module
+	for _, mod := range c.modules {
+		if mod.labels == nil {
+			continue
+		}
+
+		if _, ok := mod.labelsLookup[label]; ok {
+			modules = append(modules, mod)
+		}
+	}
+	return modules
 }
 
 // Config returns the current configuration of the Loggers. Loggers
@@ -104,8 +161,18 @@ func (c *Context) ApplyConfig(config Config) {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 	for name, level := range config {
-		module := c.getLoggerModule(name)
-		module.setLevel(level)
+		label := extractConfigLabel(name)
+		if label == "" {
+			module := c.getLoggerModule(name, nil)
+			module.setLevel(level)
+			continue
+		}
+
+		// Config contains a named label, use that for selecting the loggers.
+		modules := c.getLoggerModulesByLabel(label)
+		for _, module := range modules {
+			module.setLevel(level)
+		}
 	}
 }
 

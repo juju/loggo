@@ -15,14 +15,17 @@ type module struct {
 	level   Level
 	parent  *module
 	context *Context
+
+	labels       []string
+	labelsLookup map[string]struct{}
 }
 
 // Name returns the module's name.
-func (module *module) Name() string {
-	if module.name == "" {
+func (m *module) Name() string {
+	if m.name == "" {
 		return rootString
 	}
-	return module.name
+	return m.name
 }
 
 func (m *module) willWrite(level Level) bool {
@@ -32,27 +35,26 @@ func (m *module) willWrite(level Level) bool {
 	return level >= m.getEffectiveLogLevel()
 }
 
-func (module *module) getEffectiveLogLevel() Level {
+func (m *module) getEffectiveLogLevel() Level {
 	// Note: the root module is guaranteed to have a
 	// specified logging level, so acts as a suitable sentinel
 	// for this loop.
 	for {
-		if level := module.level.get(); level != UNSPECIFIED {
+		if level := m.level.get(); level != UNSPECIFIED {
 			return level
 		}
-		module = module.parent
+		m = m.parent
 	}
-	panic("unreachable")
 }
 
 // setLevel sets the severity level of the given module.
 // The root module cannot be set to UNSPECIFIED level.
-func (module *module) setLevel(level Level) {
+func (m *module) setLevel(level Level) {
 	// The root module can't be unspecified.
-	if module.name == "" && level == UNSPECIFIED {
+	if m.name == "" && level == UNSPECIFIED {
 		level = WARNING
 	}
-	module.level.set(level)
+	m.level.set(level)
 }
 
 func (m *module) write(entry Entry) {
