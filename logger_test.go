@@ -185,7 +185,7 @@ func (s *LoggerSuite) TestChildSameContextWithLabels(c *gc.C) {
 	ctx := loggo.NewContext(loggo.DEBUG)
 
 	logger := ctx.GetLogger("a", "parent")
-	b := logger.Child("b", "child")
+	b := logger.ChildWithLabels("b", "child")
 
 	c.Check(ctx.GetAllLoggerLabels(), gc.DeepEquals, []string{"child", "parent"})
 	c.Check(logger.Labels(), gc.DeepEquals, []string{"parent"})
