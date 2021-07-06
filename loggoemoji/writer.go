@@ -1,3 +1,6 @@
+// Copyright 2021 Canonical Ltd.
+// Licensed under the LGPLv3, see LICENCE file for details.
+
 package loggoemoji
 
 import (
@@ -31,26 +34,26 @@ var (
 	LocationColor = ansiterm.Foreground(ansiterm.BrightBlue)
 )
 
-type colorWriter struct {
+type emojiWriter struct {
 	writer *ansiterm.Writer
 }
 
-// NewColorWriter will write out colored severity levels if the writer is
+// NewWriter will write out colored severity levels if the writer is
 // outputting to a terminal.
 func NewWriter(writer io.Writer) loggo.Writer {
-	return &colorWriter{ansiterm.NewWriter(writer)}
+	return &emojiWriter{ansiterm.NewWriter(writer)}
 }
 
-// NewcolorWriter will write out colored severity levels whether or not the
+// NewColorWriter will write out colored severity levels whether or not the
 // writer is outputting to a terminal.
 func NewColorWriter(writer io.Writer) loggo.Writer {
 	w := ansiterm.NewWriter(writer)
 	w.SetColorCapable(true)
-	return &colorWriter{w}
+	return &emojiWriter{w}
 }
 
 // Write implements Writer.
-func (w *colorWriter) Write(entry loggo.Entry) {
+func (w *emojiWriter) Write(entry loggo.Entry) {
 	ts := entry.Timestamp.Format(loggo.TimeFormat)
 	// Just get the basename from the filename
 	filename := filepath.Base(entry.Filename)
