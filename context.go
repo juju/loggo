@@ -16,8 +16,10 @@ type Context struct {
 	root *module
 
 	// Perhaps have one mutex?
-	modulesMutex sync.Mutex
-	modules      map[string]*module
+	// All `modules` variables are managed by the one mutex.
+	modulesMutex       sync.Mutex
+	modules            map[string]*module
+	modulesLabelConfig map[string]Level
 
 	writersMutex sync.Mutex
 	writers      map[string]Writer
@@ -33,8 +35,9 @@ func NewContext(rootLevel Level) *Context {
 		rootLevel = WARNING
 	}
 	context := &Context{
-		modules: make(map[string]*module),
-		writers: make(map[string]Writer),
+		modules:            make(map[string]*module),
+		modulesLabelConfig: make(map[string]Level),
+		writers:            make(map[string]Writer),
 	}
 	context.root = &module{
 		level:   rootLevel,
@@ -86,7 +89,7 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 	if found {
 		return impl
 	}
-	parentName := ""
+	var parentName string
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}
@@ -97,13 +100,21 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 
 	// Ensure that we create a new logger module for the name, that includes the
 	// label.
-	labelMap := map[string]struct{}{}
+	level := UNSPECIFIED
+	labelMap := make(map[string]struct{})
 	for _, label := range labels {
 		labelMap[label] = struct{}{}
+
+		// First label wins when setting the logger label from the config label
+		// level cache. If there are no label configs, then fallback to
+		// UNSPECIFIED and inherit the level correctly.
+		if configLevel, ok := c.modulesLabelConfig[label]; ok && level == UNSPECIFIED {
+			level = configLevel
+		}
 	}
 	impl = &module{
 		name:         name,
-		level:        UNSPECIFIED,
+		level:        level,
 		parent:       parent,
 		context:      c,
 		labels:       labels,
@@ -168,6 +179,9 @@ func (c *Context) ApplyConfig(config Config) {
 			continue
 		}
 
+		// Ensure that we save the config for lazy loggers to pick up correctly.
+		c.modulesLabelConfig[label] = level
+
 		// Config contains a named label, use that for selecting the loggers.
 		modules := c.getLoggerModulesByLabel(label)
 		for _, module := range modules {
@@ -185,6 +199,8 @@ func (c *Context) ResetLoggerLevels() {
 	for _, module := range c.modules {
 		module.setLevel(UNSPECIFIED)
 	}
+	// We can safely just wipe everything here.
+	c.modulesLabelConfig = make(map[string]Level)
 }
 
 func (c *Context) write(entry Entry) {

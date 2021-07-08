@@ -5,9 +5,7 @@ package loggo
 
 // Do not change rootName: modules.resolve() will misbehave if it isn't "".
 const (
-	rootString       = "<root>"
-	defaultRootLevel = WARNING
-	defaultLevel     = UNSPECIFIED
+	rootString = "<root>"
 )
 
 type module struct {

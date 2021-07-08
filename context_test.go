@@ -104,7 +104,8 @@ func (*ContextSuite) TestNewContextNoWriter(c *gc.C) {
 func (*ContextSuite) newContextWithTestWriter(c *gc.C, level loggo.Level) (*loggo.Context, *loggo.TestWriter) {
 	writer := &loggo.TestWriter{}
 	context := loggo.NewContext(level)
-	context.AddWriter("test", writer)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
 	return context, writer
 }
 
@@ -256,6 +257,84 @@ func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
 			"c":   loggo.UNSPECIFIED,
 			"c.d": loggo.TRACE,
 			"e":   loggo.DEBUG,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggers(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a.b": loggo.TRACE,
+			"c.d": loggo.TRACE,
+			"e":   loggo.DEBUG,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.TRACE,
+			"c":   loggo.UNSPECIFIED,
+			"c.d": loggo.TRACE,
+			"e":   loggo.DEBUG,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggersWithMultipleTags(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+
+	// Invert the order here, to ensure that the config order doesn't matter,
+	// but the way the tags are ordered in `GetLogger`.
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+
+	context.GetLogger("a.b", "one", "two")
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a.b": loggo.TRACE,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.TRACE,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigLabelsResetLoggerLevels(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+
+	context.GetLogger("a.b", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	context.ResetLoggerLevels()
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"": loggo.WARNING,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.UNSPECIFIED,
+			"c":   loggo.UNSPECIFIED,
+			"c.d": loggo.UNSPECIFIED,
+			"e":   loggo.UNSPECIFIED,
 		})
 }
 
@@ -420,7 +499,6 @@ func (*ContextSuite) TestWriter(c *gc.C) {
 	c.Check(context.Writer("second"), gc.Equals, second)
 
 	c.Check(first, gc.Not(gc.Equals), second)
-
 }
 
 type writer struct {

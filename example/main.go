@@ -2,18 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/juju/loggo"
 )
 
-var logger = loggo.GetLogger("main")
 var rootLogger = loggo.GetLogger("")
 
 func main() {
 	args := os.Args
 	if len(args) > 1 {
-		loggo.ConfigureLoggers(args[1])
+		if err := loggo.ConfigureLoggers(args[1]); err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		fmt.Println("Add a parameter to configure the logging:")
 		fmt.Println("E.g. \"<root>=INFO;first=TRACE\"")
