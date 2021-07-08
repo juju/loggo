@@ -86,7 +86,7 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 	if found {
 		return impl
 	}
-	parentName := ""
+	var parentName string
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		parentName = name[0:i]
 	}

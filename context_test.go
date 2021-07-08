@@ -104,7 +104,8 @@ func (*ContextSuite) TestNewContextNoWriter(c *gc.C) {
 func (*ContextSuite) newContextWithTestWriter(c *gc.C, level loggo.Level) (*loggo.Context, *loggo.TestWriter) {
 	writer := &loggo.TestWriter{}
 	context := loggo.NewContext(level)
-	context.AddWriter("test", writer)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
 	return context, writer
 }
 
@@ -420,7 +421,6 @@ func (*ContextSuite) TestWriter(c *gc.C) {
 	c.Check(context.Writer("second"), gc.Equals, second)
 
 	c.Check(first, gc.Not(gc.Equals), second)
-
 }
 
 type writer struct {

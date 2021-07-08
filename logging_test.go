@@ -26,7 +26,8 @@ var _ = gc.Suite(&LoggingSuite{Labels: []string{"ONE", "TWO"}})
 func (s *LoggingSuite) SetUpTest(c *gc.C) {
 	s.writer = &writer{}
 	s.context = loggo.NewContext(loggo.TRACE)
-	s.context.AddWriter("test", s.writer)
+	err := s.context.AddWriter("test", s.writer)
+	c.Assert(err, gc.IsNil)
 	s.logger = s.context.GetLogger("test", s.Labels...)
 }
 

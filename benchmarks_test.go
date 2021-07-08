@@ -28,7 +28,7 @@ func (s *BenchmarksSuite) SetUpTest(c *gc.C) {
 
 func (s *BenchmarksSuite) BenchmarkLoggingNoWriters(c *gc.C) {
 	// No writers
-	loggo.RemoveWriter("test")
+	_, _ = loggo.RemoveWriter("test")
 	for i := 0; i < c.N; i++ {
 		s.logger.Warningf("just a simple warning for %d", i)
 	}
@@ -36,7 +36,7 @@ func (s *BenchmarksSuite) BenchmarkLoggingNoWriters(c *gc.C) {
 
 func (s *BenchmarksSuite) BenchmarkLoggingNoWritersNoFormat(c *gc.C) {
 	// No writers
-	loggo.RemoveWriter("test")
+	_, _ = loggo.RemoveWriter("test")
 	for i := 0; i < c.N; i++ {
 		s.logger.Warningf("just a simple warning")
 	}
@@ -68,7 +68,10 @@ func (s *BenchmarksSuite) BenchmarkLoggingDiskWriterNoMessages(c *gc.C) {
 	// Change the log level
 	writer, err := loggo.RemoveWriter("testfile")
 	c.Assert(err, gc.IsNil)
-	loggo.RegisterWriter("testfile", loggo.NewMinimumLevelWriter(writer, loggo.WARNING))
+
+	err = loggo.RegisterWriter("testfile", loggo.NewMinimumLevelWriter(writer, loggo.WARNING))
+	c.Assert(err, gc.IsNil)
+
 	msg := "just a simple warning for %d"
 	for i := 0; i < c.N; i++ {
 		s.logger.Debugf(msg, i)
@@ -84,6 +87,7 @@ func (s *BenchmarksSuite) BenchmarkLoggingDiskWriterNoMessagesLogLevel(c *gc.C) 
 	defer logFile.Close()
 	// Change the log level
 	s.logger.SetLogLevel(loggo.WARNING)
+
 	msg := "just a simple warning for %d"
 	for i := 0; i < c.N; i++ {
 		s.logger.Debugf(msg, i)
@@ -95,9 +99,10 @@ func (s *BenchmarksSuite) BenchmarkLoggingDiskWriterNoMessagesLogLevel(c *gc.C) 
 }
 
 func (s *BenchmarksSuite) setupTempFileWriter(c *gc.C) *os.File {
-	loggo.RemoveWriter("test")
+	_, _ = loggo.RemoveWriter("test")
 	logFile, err := ioutil.TempFile(c.MkDir(), "loggo-test")
 	c.Assert(err, gc.IsNil)
+
 	writer := loggo.NewSimpleWriter(logFile, loggo.DefaultFormatter)
 	err = loggo.RegisterWriter("testfile", writer)
 	c.Assert(err, gc.IsNil)

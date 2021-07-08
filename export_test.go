@@ -16,5 +16,5 @@ func (c *Context) WriterNames() []string {
 
 func ResetDefaultContext() {
 	ResetLogging()
-	DefaultContext().AddWriter(DefaultWriterName, defaultWriter())
+	_ = DefaultContext().AddWriter(DefaultWriterName, defaultWriter())
 }

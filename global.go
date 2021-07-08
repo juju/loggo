@@ -9,7 +9,9 @@ var (
 
 func newDefaultContxt() *Context {
 	ctx := NewContext(WARNING)
-	ctx.AddWriter(DefaultWriterName, defaultWriter())
+	if err := ctx.AddWriter(DefaultWriterName, defaultWriter()); err != nil {
+		panic(err)
+	}
 	return ctx
 }
 
