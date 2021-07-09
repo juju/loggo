@@ -23,7 +23,7 @@ type Writer interface {
 	Write(entry Entry)
 }
 
-// NewMinLevelWriter returns a Writer that will only pass on the Write calls
+// NewMinimumLevelWriter returns a Writer that will only pass on the Write calls
 // to the provided writer if the log level is at or above the specified
 // minimum level.
 func NewMinimumLevelWriter(writer Writer, minLevel Level) Writer {
