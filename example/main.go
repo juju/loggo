@@ -4,13 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/juju/loggo"
+	"github.com/juju/loggo/loggostructured"
 )
 
 var rootLogger = loggo.GetLogger("")
 
 func main() {
+	loggo.ResetWriters()
+	loggo.DefaultContext().AddWriter("structured", loggostructured.NewWriter(os.Stdout, time.RFC3339))
+
 	args := os.Args
 	if len(args) > 1 {
 		if err := loggo.ConfigureLoggers(args[1]); err != nil {
