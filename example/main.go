@@ -6,11 +6,15 @@ import (
 	"os"
 
 	"github.com/juju/loggo"
+	"github.com/juju/loggo/loggoemoji"
 )
 
 var rootLogger = loggo.GetLogger("")
 
 func main() {
+	loggo.ResetWriters()
+	loggo.RegisterWriter("emoji", loggoemoji.NewWriter(os.Stdout))
+
 	args := os.Args
 	if len(args) > 1 {
 		if err := loggo.ConfigureLoggers(args[1]); err != nil {
