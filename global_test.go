@@ -85,3 +85,8 @@ func (*GlobalSuite) TestRemoveWriter(c *gc.C) {
 	c.Assert(err, gc.IsNil)
 	c.Assert(loggo.DefaultContext().WriterNames(), gc.HasLen, 0)
 }
+
+func (s *GlobalSuite) TestGetLoggerWithLabels(c *gc.C) {
+	logger := loggo.GetLoggerWithLabels("parent", "labela", "labelb")
+	c.Check(logger.Labels(), gc.DeepEquals, []string{"labela", "labelb"})
+}
