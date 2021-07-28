@@ -34,6 +34,12 @@ func GetLogger(name string) Logger {
 	return defaultContext.GetLogger(name)
 }
 
+// GetLogger returns a Logger for the given module name with the correct
+// assiciated labels, creating it and its parents if necessary.
+func GetLoggerWithLabels(name string, labels ...string) Logger {
+	return defaultContext.GetLogger(name, labels...)
+}
+
 // ResetLogging iterates through the known modules and sets the levels of all
 // to UNSPECIFIED, except for <root> which is set to WARNING. The call also
 // removes all writers in the DefaultContext and puts the original default
