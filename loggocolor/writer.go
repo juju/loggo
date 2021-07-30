@@ -30,7 +30,7 @@ type colorWriter struct {
 	writer *ansiterm.Writer
 }
 
-// NewColorWriter will write out colored severity levels if the writer is
+// NewWriter will write out colored severity levels if the writer is
 // outputting to a terminal.
 func NewWriter(writer io.Writer) loggo.Writer {
 	return &colorWriter{ansiterm.NewWriter(writer)}
