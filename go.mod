@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a
+	github.com/juju/loggo v1.0.0
 	gopkg.in/check.v1 v1.0.0-20160105164936-4f90aeace3a2
 )
 
