@@ -2,12 +2,13 @@ package main
 
 import (
 	"github.com/juju/loggo"
+	"github.com/juju/loggo/attrs"
 )
 
 var first = loggo.GetLogger("first")
 
 func FirstCritical(message string) {
-	first.Criticalf(message)
+	first.Critical(message, attrs.String("baz", "boo"))
 }
 
 func FirstError(message string) {
