@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	"github.com/juju/ansiterm"
 	"github.com/juju/loggo"
+	"github.com/juju/loggo/attrs"
 )
 
 var (
@@ -55,4 +57,27 @@ func (w *colorWriter) Write(entry loggo.Entry) {
 	fmt.Fprintf(w.writer, " %s ", entry.Module)
 	LocationColor.Fprintf(w.writer, "%s:%d ", filename, entry.Line)
 	fmt.Fprintln(w.writer, entry.Message)
+
+	for _, attr := range entry.Attrs {
+		switch a := attr.(type) {
+		case attrs.AttrValue[string]:
+			fmt.Fprintf(w.writer, "  %s=%s\n", a.Key(), a.Value())
+		case attrs.AttrValue[int]:
+			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+		case attrs.AttrValue[int64]:
+			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+		case attrs.AttrValue[uint64]:
+			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+		case attrs.AttrValue[float64]:
+			fmt.Fprintf(w.writer, "  %s=%f\n", a.Key(), a.Value())
+		case attrs.AttrValue[bool]:
+			fmt.Fprintf(w.writer, "  %s=%t\n", a.Key(), a.Value())
+		case attrs.AttrValue[time.Time]:
+			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+		case attrs.AttrValue[time.Duration]:
+			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+		case attrs.AttrValue[any]:
+			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+		}
+	}
 }

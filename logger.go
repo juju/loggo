@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"runtime"
 	"time"
+
+	"github.com/juju/loggo/attrs"
 )
 
 // A Logger represents a logging module. It has an associated logging
@@ -127,7 +129,7 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 	now := time.Now() // get this early.
 	// Param to Caller is the call depth.  Since this method is called from
 	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := runtime.Caller(calldepth + 1)
+	pc, file, line, ok := runtime.Caller(calldepth + 1)
 	if !ok {
 		file = "???"
 		line = 0
@@ -154,6 +156,7 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 		Timestamp: now,
 		Message:   formattedMessage,
 		Labels:    module.labels,
+		PC:        pc,
 	})
 }
 
@@ -221,4 +224,71 @@ func (logger Logger) IsDebugEnabled() bool {
 // at trace level.
 func (logger Logger) IsTraceEnabled() bool {
 	return logger.IsLevelEnabled(TRACE)
+}
+
+// Trace logs the message at trace level.
+func (logger Logger) Trace(message string, attrs ...any) error {
+	return logger.LogCall(1, TRACE, message, attrs...)
+}
+
+// Debug logs the message at debug level.
+func (logger Logger) Debug(message string, attrs ...any) error {
+	return logger.LogCall(1, DEBUG, message, attrs...)
+}
+
+// Info logs the message at info level.
+func (logger Logger) Info(message string, attrs ...any) error {
+	return logger.LogCall(1, INFO, message, attrs...)
+}
+
+// Error logs the message at error level.
+func (logger Logger) Error(message string, attrs ...any) error {
+	return logger.LogCall(1, ERROR, message, attrs...)
+}
+
+// Warning logs the message at warning level.
+func (logger Logger) Warning(message string, attrs ...any) error {
+	return logger.LogCall(1, WARNING, message, attrs...)
+}
+
+// Critical logs the message at critical level.
+func (logger Logger) Critical(message string, attrs ...any) error {
+	return logger.LogCall(1, CRITICAL, message, attrs...)
+}
+
+func (logger Logger) LogCall(calldepth int, level Level, message string, attributes ...any) error {
+	if err := attrs.Valid(attributes); err != nil {
+		return err
+	}
+
+	module := logger.getModule()
+	if !module.willWrite(level) {
+		return nil
+	}
+	// Gather time, and filename, line number.
+	now := time.Now() // get this early.
+	// Param to Caller is the call depth.  Since this method is called from
+	// the Logger methods, we want the place that those were called from.
+	pc, file, line, ok := runtime.Caller(calldepth + 1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+	// Trim newline off format string, following usual
+	// Go logging conventions.
+	if len(message) > 0 && message[len(message)-1] == '\n' {
+		message = message[0 : len(message)-1]
+	}
+
+	module.write(Entry{
+		Level:     level,
+		Filename:  file,
+		Line:      line,
+		Timestamp: now,
+		Message:   message,
+		Labels:    module.labels,
+		PC:        pc,
+		Attrs:     attributes,
+	})
+	return nil
 }

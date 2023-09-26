@@ -21,4 +21,8 @@ type Entry struct {
 	Message string
 	// Labels is the label associated with the log message.
 	Labels []string
+	// PC is the program counter of the log call.
+	PC uintptr
+	// Attrs is the list of attributes associated with the log message.
+	Attrs []any
 }
