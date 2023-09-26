@@ -213,7 +213,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	now := time.Now() // get this early.
 	// Param to Caller is the call depth.  Since this method is called from
 	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := caller(calldepth + 1)
+	pc, file, line, ok := caller(calldepth + 1)
 	if !ok {
 		file = "???"
 		line = 0
@@ -239,6 +239,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 		Line:      line,
 		Timestamp: now,
 		Message:   formattedMessage,
+		PC:        pc,
 	}
 	entry.Labels = make(Labels)
 	if len(module.tags) > 0 {
