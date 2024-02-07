@@ -8,7 +8,7 @@ import (
 
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/loggo"
+	"github.com/juju/loggo/v2"
 )
 
 type LoggingSuite struct {

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/juju/loggo"
+	"github.com/juju/loggo/v2"
 )
 
 var rootLogger = loggo.GetLogger("")

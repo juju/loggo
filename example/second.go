@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/juju/loggo"
+	"github.com/juju/loggo/v2"
 )
 
 var second = loggo.GetLogger("second")
