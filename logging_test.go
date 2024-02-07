@@ -8,7 +8,7 @@ import (
 
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/loggo"
+	"github.com/juju/loggo/v2"
 )
 
 type LoggingSuite struct {
@@ -17,18 +17,18 @@ type LoggingSuite struct {
 	logger  loggo.Logger
 
 	// Test that labels get outputted to loggo.Entry
-	Labels []string
+	Labels map[string]string
 }
 
 var _ = gc.Suite(&LoggingSuite{})
-var _ = gc.Suite(&LoggingSuite{Labels: []string{"ONE", "TWO"}})
+var _ = gc.Suite(&LoggingSuite{Labels: loggo.Labels{"logger-tags": "ONE,TWO"}})
 
 func (s *LoggingSuite) SetUpTest(c *gc.C) {
 	s.writer = &writer{}
 	s.context = loggo.NewContext(loggo.TRACE)
 	err := s.context.AddWriter("test", s.writer)
 	c.Assert(err, gc.IsNil)
-	s.logger = s.context.GetLogger("test", s.Labels...)
+	s.logger = s.context.GetLogger("test", "ONE,TWO")
 }
 
 func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {

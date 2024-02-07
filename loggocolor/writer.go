@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/juju/ansiterm"
-	"github.com/juju/loggo"
+
+	"github.com/juju/loggo/v2"
 )
 
 var (

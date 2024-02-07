@@ -7,8 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/juju/loggo"
 	gc "gopkg.in/check.v1"
+
+	"github.com/juju/loggo/v2"
 )
 
 type BenchmarksSuite struct {

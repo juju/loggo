@@ -14,7 +14,7 @@ type module struct {
 	parent  *module
 	context *Context
 
-	labels       []string
+	tags         []string
 	labelsLookup map[string]struct{}
 }
 

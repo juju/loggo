@@ -6,7 +6,7 @@ package loggo_test
 import (
 	gc "gopkg.in/check.v1"
 
-	"github.com/juju/loggo"
+	"github.com/juju/loggo/v2"
 )
 
 type LoggerSuite struct{}
@@ -26,6 +26,35 @@ func (s *LoggerSuite) TestRootLogger(c *gc.C) {
 	c.Check(root.IsInfoEnabled(), gc.Equals, false)
 	c.Check(root.IsDebugEnabled(), gc.Equals, false)
 	c.Check(root.IsTraceEnabled(), gc.Equals, false)
+}
+
+func (s *LoggerSuite) TestWithLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+	loggerWithLabels := logger.WithLabels(loggo.Labels{"foo": "bar"})
+	loggerWithTagsAndLabels := logger.
+		ChildWithTags("withTags", "tag1", "tag2").
+		WithLabels(loggo.Labels{"hello": "world"})
+
+	logger.Logf(loggo.INFO, "without labels")
+	loggerWithLabels.Logf(loggo.INFO, "with labels")
+	loggerWithTagsAndLabels.Logf(loggo.INFO, "with tags and labels")
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 3)
+	c.Check(logs[0].Message, gc.Equals, "without labels")
+	c.Check(logs[0].Labels, gc.HasLen, 0)
+	c.Check(logs[1].Message, gc.Equals, "with labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+	c.Check(logs[2].Message, gc.Equals, "with tags and labels")
+	c.Check(logs[2].Labels, gc.DeepEquals, loggo.Labels{
+		"logger-tags": "tag1,tag2",
+		"hello":       "world",
+	})
 }
 
 func (s *LoggerSuite) TestSetLevel(c *gc.C) {
@@ -147,7 +176,7 @@ func (s *LoggerSuite) TestParent(c *gc.C) {
 	c.Check(b.Name(), gc.Equals, "a.b")
 	c.Check(a.Name(), gc.Equals, "a")
 	c.Check(root.Name(), gc.Equals, "<root>")
-	c.Check(root.Parent(), gc.Equals, root)
+	c.Check(root.Parent(), gc.DeepEquals, root)
 }
 
 func (s *LoggerSuite) TestParentSameContext(c *gc.C) {
@@ -156,8 +185,8 @@ func (s *LoggerSuite) TestParentSameContext(c *gc.C) {
 	logger := ctx.GetLogger("a.b.c")
 	b := logger.Parent()
 
-	c.Check(b, gc.Equals, ctx.GetLogger("a.b"))
-	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
+	c.Check(b, gc.DeepEquals, ctx.GetLogger("a.b"))
+	c.Check(b, gc.Not(gc.DeepEquals), loggo.GetLogger("a.b"))
 }
 
 func (s *LoggerSuite) TestChild(c *gc.C) {
@@ -168,7 +197,7 @@ func (s *LoggerSuite) TestChild(c *gc.C) {
 
 	c.Check(a.Name(), gc.Equals, "a")
 	c.Check(logger.Name(), gc.Equals, "a.b.c")
-	c.Check(logger.Parent(), gc.Equals, a.Child("b"))
+	c.Check(logger.Parent(), gc.DeepEquals, a.Child("b"))
 }
 
 func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
@@ -177,19 +206,19 @@ func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
 	logger := ctx.GetLogger("a")
 	b := logger.Child("b")
 
-	c.Check(b, gc.Equals, ctx.GetLogger("a.b"))
-	c.Check(b, gc.Not(gc.Equals), loggo.GetLogger("a.b"))
+	c.Check(b, gc.DeepEquals, ctx.GetLogger("a.b"))
+	c.Check(b, gc.Not(gc.DeepEquals), loggo.GetLogger("a.b"))
 }
 
 func (s *LoggerSuite) TestChildSameContextWithLabels(c *gc.C) {
 	ctx := loggo.NewContext(loggo.DEBUG)
 
 	logger := ctx.GetLogger("a", "parent")
-	b := logger.ChildWithLabels("b", "child")
+	b := logger.ChildWithTags("b", "child")
 
 	c.Check(ctx.GetAllLoggerLabels(), gc.DeepEquals, []string{"child", "parent"})
-	c.Check(logger.Labels(), gc.DeepEquals, []string{"parent"})
-	c.Check(b.Labels(), gc.DeepEquals, []string{"child"})
+	c.Check(logger.Tags(), gc.DeepEquals, []string{"parent"})
+	c.Check(b.Tags(), gc.DeepEquals, []string{"child"})
 }
 
 func (s *LoggerSuite) TestRoot(c *gc.C) {
@@ -197,7 +226,7 @@ func (s *LoggerSuite) TestRoot(c *gc.C) {
 	root := logger.Root()
 
 	c.Check(root.Name(), gc.Equals, "<root>")
-	c.Check(root.Child("a.b.c"), gc.Equals, logger)
+	c.Check(root.Child("a.b.c"), gc.DeepEquals, logger)
 }
 
 func (s *LoggerSuite) TestRootSameContext(c *gc.C) {
@@ -207,6 +236,6 @@ func (s *LoggerSuite) TestRootSameContext(c *gc.C) {
 	root := logger.Root()
 
 	c.Check(root.Name(), gc.Equals, "<root>")
-	c.Check(root.Child("a.b.c"), gc.Equals, logger)
-	c.Check(root.Child("a.b.c"), gc.Not(gc.Equals), loggo.GetLogger("a.b.c"))
+	c.Check(root.Child("a.b.c"), gc.DeepEquals, logger)
+	c.Check(root.Child("a.b.c"), gc.Not(gc.DeepEquals), loggo.GetLogger("a.b.c"))
 }
