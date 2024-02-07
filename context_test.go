@@ -5,6 +5,7 @@ package loggo_test
 
 import (
 	"github.com/juju/loggo"
+
 	gc "gopkg.in/check.v1"
 )
 
@@ -75,14 +76,14 @@ func (*ContextSuite) TestGetLoggerRoot(c *gc.C) {
 	context := loggo.NewContext(loggo.DEBUG)
 	blank := context.GetLogger("")
 	root := context.GetLogger("<root>")
-	c.Assert(blank, gc.Equals, root)
+	c.Assert(blank, gc.DeepEquals, root)
 }
 
 func (*ContextSuite) TestGetLoggerCase(c *gc.C) {
 	context := loggo.NewContext(loggo.DEBUG)
 	upper := context.GetLogger("TEST")
 	lower := context.GetLogger("test")
-	c.Assert(upper, gc.Equals, lower)
+	c.Assert(upper, gc.DeepEquals, lower)
 	c.Assert(upper.Name(), gc.Equals, "test")
 }
 
@@ -90,7 +91,7 @@ func (*ContextSuite) TestGetLoggerSpace(c *gc.C) {
 	context := loggo.NewContext(loggo.DEBUG)
 	space := context.GetLogger(" test ")
 	lower := context.GetLogger("test")
-	c.Assert(space, gc.Equals, lower)
+	c.Assert(space, gc.DeepEquals, lower)
 	c.Assert(space.Name(), gc.Equals, "test")
 }
 

@@ -34,10 +34,10 @@ func GetLogger(name string) Logger {
 	return defaultContext.GetLogger(name)
 }
 
-// GetLogger returns a Logger for the given module name with the correct
-// assiciated labels, creating it and its parents if necessary.
-func GetLoggerWithLabels(name string, labels ...string) Logger {
-	return defaultContext.GetLogger(name, labels...)
+// GetLoggerWithTags returns a Logger for the given module name with the correct
+// associated tags, creating it and its parents if necessary.
+func GetLoggerWithTags(name string, tags ...string) Logger {
+	return defaultContext.GetLogger(name, tags...)
 }
 
 // ResetLogging iterates through the known modules and sets the levels of all
@@ -82,7 +82,8 @@ func RemoveWriter(name string) (Writer, error) {
 // "<root>".
 //
 // An example specification:
-//  `<root>=ERROR; foo.bar=WARNING`
+//
+//	`<root>=ERROR; foo.bar=WARNING`
 func ConfigureLoggers(specification string) error {
 	return defaultContext.ConfigureLoggers(specification)
 }

@@ -4,8 +4,9 @@
 package loggo_test
 
 import (
-	"github.com/juju/loggo"
 	gc "gopkg.in/check.v1"
+
+	"github.com/juju/loggo"
 )
 
 type GlobalSuite struct{}
@@ -86,7 +87,7 @@ func (*GlobalSuite) TestRemoveWriter(c *gc.C) {
 	c.Assert(loggo.DefaultContext().WriterNames(), gc.HasLen, 0)
 }
 
-func (s *GlobalSuite) TestGetLoggerWithLabels(c *gc.C) {
-	logger := loggo.GetLoggerWithLabels("parent", "labela", "labelb")
-	c.Check(logger.Labels(), gc.DeepEquals, []string{"labela", "labelb"})
+func (s *GlobalSuite) TestGetLoggerWithTags(c *gc.C) {
+	logger := loggo.GetLoggerWithTags("parent", "labela", "labelb")
+	c.Check(logger.Tags(), gc.DeepEquals, []string{"labela", "labelb"})
 }

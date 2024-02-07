@@ -6,6 +6,7 @@ package loggo
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -17,7 +18,23 @@ import (
 // The zero Logger value is usable - any messages logged
 // to it will be sent to the root Logger.
 type Logger struct {
-	impl *module
+	impl   *module
+	labels Labels
+}
+
+// WithLabels returns a logger whose module is the same
+// as this logger and the returned logger will add the
+// specified labels to each log entry.
+func (logger Logger) WithLabels(labels Labels) Logger {
+	if len(labels) == 0 {
+		return logger
+	}
+	result := logger
+	result.labels = make(Labels)
+	for k, v := range labels {
+		result.labels[k] = v
+	}
+	return result
 }
 
 func (logger Logger) getModule() *module {
@@ -39,7 +56,7 @@ func (logger Logger) Root() Logger {
 // "a.b.c" is "a.b".
 // The Parent of the root logger is still the root logger.
 func (logger Logger) Parent() Logger {
-	return Logger{logger.getModule().parent}
+	return Logger{impl: logger.getModule().parent}
 }
 
 // Child returns the Logger whose module name is the composed of this
@@ -55,9 +72,9 @@ func (logger Logger) Child(name string) Logger {
 	return module.context.GetLogger(path)
 }
 
-// ChildWithLabels returns the Logger whose module name is the composed of this
-// Logger's name and the specified name with the correct associated labels.
-func (logger Logger) ChildWithLabels(name string, labels ...string) Logger {
+// ChildWithTags returns the Logger whose module name is the composed of this
+// Logger's name and the specified name with the correct associated tags.
+func (logger Logger) ChildWithTags(name string, tags ...string) Logger {
 	module := logger.getModule()
 	path := module.name
 	if path == "" {
@@ -65,7 +82,7 @@ func (logger Logger) ChildWithLabels(name string, labels ...string) Logger {
 	} else {
 		path += "." + name
 	}
-	return module.context.GetLogger(path, labels...)
+	return module.context.GetLogger(path, tags...)
 }
 
 // Name returns the logger's module name.
@@ -78,9 +95,9 @@ func (logger Logger) LogLevel() Level {
 	return logger.getModule().level
 }
 
-// Labels returns the configured labels of the logger.
-func (logger Logger) Labels() []string {
-	return logger.getModule().labels
+// Tags returns the configured tags of the logger's module.
+func (logger Logger) Tags() []string {
+	return logger.getModule().tags
 }
 
 // EffectiveLogLevel returns the effective min log level of
@@ -147,14 +164,24 @@ func (logger Logger) LogCallf(calldepth int, level Level, message string, args .
 		formattedMessage = fmt.Sprintf(message, args...)
 	}
 
-	module.write(Entry{
+	entry := Entry{
 		Level:     level,
 		Filename:  file,
 		Line:      line,
 		Timestamp: now,
 		Message:   formattedMessage,
-		Labels:    module.labels,
-	})
+	}
+	if len(module.tags) > 0 || len(logger.labels) > 0 {
+		entry.Labels = make(Labels)
+		if len(module.tags) > 0 {
+			entry.Labels = make(Labels)
+			entry.Labels[LoggerTags] = strings.Join(module.tags, ",")
+		}
+		for k, v := range logger.labels {
+			entry.Labels[k] = v
+		}
+	}
+	module.write(entry)
 }
 
 // Criticalf logs the printf-formatted message at critical level.

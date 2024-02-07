@@ -28,7 +28,7 @@ type Context struct {
 	writeMutex sync.Mutex
 }
 
-// NewLoggers returns a new Context with no writers set.
+// NewContext returns a new Context with no writers set.
 // If the root level is UNSPECIFIED, WARNING is used.
 func NewContext(rootLevel Level) *Context {
 	if rootLevel < TRACE || rootLevel > CRITICAL {
@@ -81,7 +81,7 @@ func (c *Context) GetAllLoggerLabels() []string {
 	return labels
 }
 
-func (c *Context) getLoggerModule(name string, labels []string) *module {
+func (c *Context) getLoggerModule(name string, tags []string) *module {
 	if name == rootString {
 		name = ""
 	}
@@ -94,21 +94,21 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 		parentName = name[0:i]
 	}
 	// Labels don't apply to the parent, otherwise <root> would have all labels.
-	// Selection of the label would give you all loggers again, which isn't what
+	// Selection of the tag would give you all loggers again, which isn't what
 	// you want.
 	parent := c.getLoggerModule(parentName, nil)
 
 	// Ensure that we create a new logger module for the name, that includes the
-	// label.
+	// tag.
 	level := UNSPECIFIED
 	labelMap := make(map[string]struct{})
-	for _, label := range labels {
-		labelMap[label] = struct{}{}
+	for _, tag := range tags {
+		labelMap[tag] = struct{}{}
 
-		// First label wins when setting the logger label from the config label
-		// level cache. If there are no label configs, then fallback to
+		// First tag wins when setting the logger tag from the config tag
+		// level cache. If there are no tag configs, then fallback to
 		// UNSPECIFIED and inherit the level correctly.
-		if configLevel, ok := c.modulesLabelConfig[label]; ok && level == UNSPECIFIED {
+		if configLevel, ok := c.modulesLabelConfig[tag]; ok && level == UNSPECIFIED {
 			level = configLevel
 		}
 	}
@@ -117,18 +117,18 @@ func (c *Context) getLoggerModule(name string, labels []string) *module {
 		level:        level,
 		parent:       parent,
 		context:      c,
-		labels:       labels,
+		tags:         tags,
 		labelsLookup: labelMap,
 	}
 	c.modules[name] = impl
 	return impl
 }
 
-// getLoggerModulesByLabel returns modules that have the associated label.
-func (c *Context) getLoggerModulesByLabel(label string) []*module {
+// getLoggerModulesByTag returns modules that have the associated tag.
+func (c *Context) getLoggerModulesByTag(label string) []*module {
 	var modules []*module
 	for _, mod := range c.modules {
-		if mod.labels == nil {
+		if len(mod.tags) == 0 {
 			continue
 		}
 
@@ -183,7 +183,7 @@ func (c *Context) ApplyConfig(config Config) {
 		c.modulesLabelConfig[label] = level
 
 		// Config contains a named label, use that for selecting the loggers.
-		modules := c.getLoggerModulesByLabel(label)
+		modules := c.getLoggerModulesByTag(label)
 		for _, module := range modules {
 			module.setLevel(level)
 		}
@@ -297,6 +297,7 @@ func (c *Context) ResetWriters() {
 // with the name "<root>".
 //
 // An example specification:
+//
 //	`<root>=ERROR; foo.bar=WARNING`
 func (c *Context) ConfigureLoggers(specification string) error {
 	config, err := ParseConfigString(specification)
