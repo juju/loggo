@@ -57,6 +57,32 @@ func (s *LoggerSuite) TestWithLabels(c *gc.C) {
 	})
 }
 
+func (s *LoggerSuite) TestLogWithStaticAndDynamicLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+	loggerWithLabels := logger.WithLabels(loggo.Labels{"foo": "bar"})
+
+	loggerWithLabels.LogWithLabelsf(loggo.INFO, "no extra labels", nil)
+	loggerWithLabels.LogWithLabelsf(loggo.INFO, "with extra labels", map[string]string{
+		"domain": "status",
+		"kind":   "machine",
+		"id":     "0",
+		"value":  "idle",
+	})
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 2)
+	c.Check(logs[0].Message, gc.Equals, "no extra labels")
+	c.Check(logs[0].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+	c.Check(logs[1].Message, gc.Equals, "with extra labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
+		"foo": "bar", "domain": "status", "id": "0", "kind": "machine", "value": "idle"})
+}
+
 func (s *LoggerSuite) TestLogWithExtraLabels(c *gc.C) {
 	writer := &loggo.TestWriter{}
 	context := loggo.NewContext(loggo.INFO)
@@ -80,7 +106,6 @@ func (s *LoggerSuite) TestLogWithExtraLabels(c *gc.C) {
 	c.Check(logs[1].Message, gc.Equals, "with extra labels")
 	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
 		"domain": "status", "id": "0", "kind": "machine", "value": "idle"})
-
 }
 
 func (s *LoggerSuite) TestSetLevel(c *gc.C) {
