@@ -186,19 +186,17 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 		Timestamp: now,
 		Message:   formattedMessage,
 	}
-	if len(module.tags) > 0 || len(logger.labels) > 0 || len(extraLabels) > 0 {
+	entry.Labels = make(Labels)
+	if len(module.tags) > 0 {
 		entry.Labels = make(Labels)
-		if len(module.tags) > 0 {
-			entry.Labels = make(Labels)
-			entry.Labels[LoggerTags] = strings.Join(module.tags, ",")
-		}
-		for k, v := range logger.labels {
-			entry.Labels[k] = v
-		}
-		// Add extra labels if there's any given.
-		for k, v := range extraLabels {
-			entry.Labels[k] = v
-		}
+		entry.Labels[LoggerTags] = strings.Join(module.tags, ",")
+	}
+	for k, v := range logger.labels {
+		entry.Labels[k] = v
+	}
+	// Add extra labels if there's any given.
+	for k, v := range extraLabels {
+		entry.Labels[k] = v
 	}
 	module.write(entry)
 }
@@ -221,6 +219,12 @@ func (logger Logger) Warningf(message string, args ...interface{}) {
 // Infof logs the printf-formatted message at info level.
 func (logger Logger) Infof(message string, args ...interface{}) {
 	logger.Logf(INFO, message, args...)
+}
+
+// InfoWithLabelsf logs the printf-formatted message at info level with extra
+// labels.
+func (logger Logger) InfoWithLabelsf(message string, extraLabels map[string]string, args ...interface{}) {
+	logger.LogWithLabelsf(INFO, message, extraLabels, args...)
 }
 
 // Debugf logs the printf-formatted message at debug level.
