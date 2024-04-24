@@ -112,6 +112,15 @@ func (c *Context) getLoggerModule(name string, tags []string) *module {
 			level = configLevel
 		}
 	}
+
+	// As it's not possible to modify the parent's labels, it's safe to copy
+	// them at the time of creation. Otherwise we have to walk the parent chain
+	// to get the full set of labels for every log message.
+	labels := make(Labels)
+	for k, v := range parent.labels {
+		labels[k] = v
+	}
+
 	impl = &module{
 		name:       name,
 		level:      level,
@@ -119,6 +128,7 @@ func (c *Context) getLoggerModule(name string, tags []string) *module {
 		context:    c,
 		tags:       tags,
 		tagsLookup: labelMap,
+		labels:     parent.labels,
 	}
 	c.modules[name] = impl
 	return impl

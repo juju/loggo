@@ -16,6 +16,8 @@ type module struct {
 
 	tags       []string
 	tagsLookup map[string]struct{}
+
+	labels Labels
 }
 
 // Name returns the module's name.

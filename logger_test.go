@@ -57,6 +57,110 @@ func (s *LoggerSuite) TestWithLabels(c *gc.C) {
 	})
 }
 
+func (s *LoggerSuite) TestNonInheritedLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing").
+		WithLabels(loggo.Labels{"hello": "world"})
+
+	inheritedLoggerWithLabels := logger.
+		ChildWithLabels("inherited", loggo.Labels{"foo": "bar"})
+
+	logger.Logf(loggo.INFO, "with labels")
+	inheritedLoggerWithLabels.Logf(loggo.INFO, "with inherited labels")
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 2)
+
+	// The second log message should _only_ have the inherited labels.
+
+	c.Check(logs[0].Message, gc.Equals, "with labels")
+	c.Check(logs[0].Labels, gc.DeepEquals, loggo.Labels{"hello": "world"})
+
+	c.Check(logs[1].Message, gc.Equals, "with inherited labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+}
+
+func (s *LoggerSuite) TestNonInheritedWithInheritedLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	inheritedLoggerWithLabels := logger.
+		ChildWithLabels("inherited", loggo.Labels{"foo": "bar"})
+
+	scopedLoggerWithLabels := inheritedLoggerWithLabels.
+		WithLabels(loggo.Labels{"hello": "world"})
+
+	inheritedLoggerWithLabels.Logf(loggo.INFO, "with inherited labels")
+	scopedLoggerWithLabels.Logf(loggo.INFO, "with scoped labels")
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 2)
+
+	// The second log message should have both the inherited labels and
+	// scoped labels.
+
+	c.Check(logs[0].Message, gc.Equals, "with inherited labels")
+	c.Check(logs[0].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+
+	c.Check(logs[1].Message, gc.Equals, "with scoped labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
+		"foo":   "bar",
+		"hello": "world",
+	})
+}
+
+func (s *LoggerSuite) TestInheritedLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	nestedLoggerWithLabels := logger.
+		ChildWithLabels("nested", loggo.Labels{"foo": "bar"})
+	deepNestedLoggerWithLabels := nestedLoggerWithLabels.
+		ChildWithLabels("nested", loggo.Labels{"foo": "bar"}).
+		ChildWithLabels("deepnested", loggo.Labels{"fred": "tim"})
+
+	loggerWithTagsAndLabels := logger.
+		ChildWithLabels("nested-labels", loggo.Labels{"hello": "world"}).
+		ChildWithTags("nested-tag", "tag1", "tag2")
+
+	logger.Logf(loggo.INFO, "without labels")
+	nestedLoggerWithLabels.Logf(loggo.INFO, "with nested labels")
+	deepNestedLoggerWithLabels.Logf(loggo.INFO, "with deep nested labels")
+	loggerWithTagsAndLabels.Logf(loggo.INFO, "with tags and labels")
+
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 4)
+	c.Check(logs[0].Message, gc.Equals, "without labels")
+	c.Check(logs[0].Labels, gc.HasLen, 0)
+
+	c.Check(logs[1].Message, gc.Equals, "with nested labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+
+	c.Check(logs[2].Message, gc.Equals, "with deep nested labels")
+	c.Check(logs[2].Labels, gc.DeepEquals, loggo.Labels{
+		"foo":  "bar",
+		"fred": "tim",
+	})
+
+	c.Check(logs[3].Message, gc.Equals, "with tags and labels")
+	c.Check(logs[3].Labels, gc.DeepEquals, loggo.Labels{
+		"logger-tags": "tag1,tag2",
+		"hello":       "world",
+	})
+}
+
 func (s *LoggerSuite) TestLogWithStaticAndDynamicLabels(c *gc.C) {
 	writer := &loggo.TestWriter{}
 	context := loggo.NewContext(loggo.INFO)
