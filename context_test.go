@@ -216,25 +216,25 @@ func (*ContextSuite) TestApplyConfigAdditive(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestGetAllLoggerLabels(c *gc.C) {
+func (*ContextSuite) TestGetAllLoggerTags(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.GetLogger("a.b", "one")
 	context.GetLogger("c.d", "one")
 	context.GetLogger("e", "two")
 
-	labels := context.GetAllLoggerLabels()
+	labels := context.GetAllLoggerTags()
 	c.Assert(labels, gc.DeepEquals, []string{"one", "two"})
 }
 
-func (*ContextSuite) TestGetAllLoggerLabelsWithApplyConfig(c *gc.C) {
+func (*ContextSuite) TestGetAllLoggerTagsWithApplyConfig(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
 
-	labels := context.GetAllLoggerLabels()
+	labels := context.GetAllLoggerTags()
 	c.Assert(labels, gc.DeepEquals, []string{})
 }
 
-func (*ContextSuite) TestApplyConfigLabels(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTags(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.GetLogger("a.b", "one")
 	context.GetLogger("c.d", "one")
@@ -339,7 +339,7 @@ func (*ContextSuite) TestApplyConfigLabelsResetLoggerLevels(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestApplyConfigLabelsAddative(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTagsAddative(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
 	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
@@ -353,7 +353,7 @@ func (*ContextSuite) TestApplyConfigLabelsAddative(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestApplyConfigWithMalformedLabel(c *gc.C) {
+func (*ContextSuite) TestApplyConfigWithMalformedTag(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.GetLogger("a.b", "one")
 
@@ -371,7 +371,7 @@ func (*ContextSuite) TestApplyConfigWithMalformedLabel(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestResetLoggerLevels(c *gc.C) {
+func (*ContextSuite) TestResetLoggerTags(c *gc.C) {
 	context := loggo.NewContext(loggo.DEBUG)
 	context.ApplyConfig(loggo.Config{"first.second": loggo.TRACE})
 	context.ResetLoggerLevels()

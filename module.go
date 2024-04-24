@@ -14,8 +14,10 @@ type module struct {
 	parent  *module
 	context *Context
 
-	tags         []string
-	labelsLookup map[string]struct{}
+	tags       []string
+	tagsLookup map[string]struct{}
+
+	labels Labels
 }
 
 // Name returns the module's name.

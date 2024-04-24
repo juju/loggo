@@ -38,16 +38,16 @@ func (*ConfigSuite) TestParseConfigValue(c *gc.C) {
 		module: "",
 		level:  INFO,
 	}, {
-		value:  "#label = info",
-		module: "#label",
+		value:  "#tag = info",
+		module: "#tag",
 		level:  INFO,
 	}, {
-		value:  "#LABEL = info",
-		module: "#label",
+		value:  "#TAG = info",
+		module: "#tag",
 		level:  INFO,
 	}, {
-		value: "#label.1 = info",
-		err:   `config label should not contain '.', found "#label.1"`,
+		value: "#tag.1 = info",
+		err:   `config tag should not contain '.', found "#tag.1"`,
 	}} {
 		c.Logf("%d: %s", i, test.value)
 		module, level, err := parseConfigValue(test.value)

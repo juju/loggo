@@ -17,9 +17,9 @@ type Context struct {
 
 	// Perhaps have one mutex?
 	// All `modules` variables are managed by the one mutex.
-	modulesMutex       sync.Mutex
-	modules            map[string]*module
-	modulesLabelConfig map[string]Level
+	modulesMutex     sync.Mutex
+	modules          map[string]*module
+	modulesTagConfig map[string]Level
 
 	writersMutex sync.Mutex
 	writers      map[string]Writer
@@ -35,9 +35,9 @@ func NewContext(rootLevel Level) *Context {
 		rootLevel = WARNING
 	}
 	context := &Context{
-		modules:            make(map[string]*module),
-		modulesLabelConfig: make(map[string]Level),
-		writers:            make(map[string]Writer),
+		modules:          make(map[string]*module),
+		modulesTagConfig: make(map[string]Level),
+		writers:          make(map[string]Writer),
 	}
 	context.root = &module{
 		level:   rootLevel,
@@ -50,26 +50,26 @@ func NewContext(rootLevel Level) *Context {
 
 // GetLogger returns a Logger for the given module name, creating it and
 // its parents if necessary.
-func (c *Context) GetLogger(name string, labels ...string) Logger {
+func (c *Context) GetLogger(name string, tags ...string) Logger {
 	name = strings.TrimSpace(strings.ToLower(name))
 
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 
 	return Logger{
-		impl: c.getLoggerModule(name, labels),
+		impl: c.getLoggerModule(name, tags),
 	}
 }
 
-// GetAllLoggerLabels returns all the logger labels for a given context. The
+// GetAllLoggerTags returns all the logger tags for a given context. The
 // names are unique and sorted before returned, to improve consistency.
-func (c *Context) GetAllLoggerLabels() []string {
+func (c *Context) GetAllLoggerTags() []string {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 
 	names := make(map[string]struct{})
 	for _, module := range c.modules {
-		for k, v := range module.labelsLookup {
+		for k, v := range module.tagsLookup {
 			names[k] = v
 		}
 	}
@@ -108,17 +108,27 @@ func (c *Context) getLoggerModule(name string, tags []string) *module {
 		// First tag wins when setting the logger tag from the config tag
 		// level cache. If there are no tag configs, then fallback to
 		// UNSPECIFIED and inherit the level correctly.
-		if configLevel, ok := c.modulesLabelConfig[tag]; ok && level == UNSPECIFIED {
+		if configLevel, ok := c.modulesTagConfig[tag]; ok && level == UNSPECIFIED {
 			level = configLevel
 		}
 	}
+
+	// As it's not possible to modify the parent's labels, it's safe to copy
+	// them at the time of creation. Otherwise we have to walk the parent chain
+	// to get the full set of labels for every log message.
+	labels := make(Labels)
+	for k, v := range parent.labels {
+		labels[k] = v
+	}
+
 	impl = &module{
-		name:         name,
-		level:        level,
-		parent:       parent,
-		context:      c,
-		tags:         tags,
-		labelsLookup: labelMap,
+		name:       name,
+		level:      level,
+		parent:     parent,
+		context:    c,
+		tags:       tags,
+		tagsLookup: labelMap,
+		labels:     parent.labels,
 	}
 	c.modules[name] = impl
 	return impl
@@ -132,7 +142,7 @@ func (c *Context) getLoggerModulesByTag(label string) []*module {
 			continue
 		}
 
-		if _, ok := mod.labelsLookup[label]; ok {
+		if _, ok := mod.tagsLookup[label]; ok {
 			modules = append(modules, mod)
 		}
 	}
@@ -172,18 +182,18 @@ func (c *Context) ApplyConfig(config Config) {
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
 	for name, level := range config {
-		label := extractConfigLabel(name)
-		if label == "" {
+		tag := extractConfigTag(name)
+		if tag == "" {
 			module := c.getLoggerModule(name, nil)
 			module.setLevel(level)
 			continue
 		}
 
 		// Ensure that we save the config for lazy loggers to pick up correctly.
-		c.modulesLabelConfig[label] = level
+		c.modulesTagConfig[tag] = level
 
-		// Config contains a named label, use that for selecting the loggers.
-		modules := c.getLoggerModulesByTag(label)
+		// Config contains a named tag, use that for selecting the loggers.
+		modules := c.getLoggerModulesByTag(tag)
 		for _, module := range modules {
 			module.setLevel(level)
 		}
@@ -200,7 +210,7 @@ func (c *Context) ResetLoggerLevels() {
 		module.setLevel(UNSPECIFIED)
 	}
 	// We can safely just wipe everything here.
-	c.modulesLabelConfig = make(map[string]Level)
+	c.modulesTagConfig = make(map[string]Level)
 }
 
 func (c *Context) write(entry Entry) {

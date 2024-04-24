@@ -22,13 +22,16 @@ type Logger struct {
 	labels Labels
 }
 
-// WithLabels returns a logger whose module is the same
-// as this logger and the returned logger will add the
-// specified labels to each log entry.
+// WithLabels returns a logger whose module is the same as this logger and
+// the returned logger will add the specified labels to each log entry.
+// WithLabels only target a specific logger with labels. Children of the logger
+// will not inherit the labels.
+// To add labels to all child loggers, use ChildWithLabels.
 func (logger Logger) WithLabels(labels Labels) Logger {
 	if len(labels) == 0 {
 		return logger
 	}
+
 	result := logger
 	result.labels = make(Labels)
 	for k, v := range labels {
@@ -83,6 +86,34 @@ func (logger Logger) ChildWithTags(name string, tags ...string) Logger {
 		path += "." + name
 	}
 	return module.context.GetLogger(path, tags...)
+}
+
+// ChildWithLabels returns the Logger whose module name is the composed of this
+// Logger's name and the specified name with the correct associated labels.
+// Adding labels to the child logger will cause all child loggers to also
+// inherit the labels of the parent(s) loggers.
+// For targeting a singular logger with labels, use WithLabels which are not
+// inherited by child loggers.
+func (logger Logger) ChildWithLabels(name string, labels Labels) Logger {
+	module := logger.getModule()
+	path := module.name
+	if path == "" {
+		path = name
+	} else {
+		path += "." + name
+	}
+
+	merged := make(Labels)
+	for k, v := range logger.impl.labels {
+		merged[k] = v
+	}
+	for k, v := range labels {
+		merged[k] = v
+	}
+
+	result := module.context.GetLogger(path)
+	result.impl.labels = merged
+	return result
 }
 
 // Name returns the logger's module name.
@@ -188,8 +219,10 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	}
 	entry.Labels = make(Labels)
 	if len(module.tags) > 0 {
-		entry.Labels = make(Labels)
 		entry.Labels[LoggerTags] = strings.Join(module.tags, ",")
+	}
+	for k, v := range logger.impl.labels {
+		entry.Labels[k] = v
 	}
 	for k, v := range logger.labels {
 		entry.Labels[k] = v
