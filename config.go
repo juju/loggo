@@ -47,19 +47,19 @@ func parseConfigValue(value string) (string, Level, error) {
 		return "", UNSPECIFIED, fmt.Errorf("config value %q has missing module name", value)
 	}
 
-	if label := extractConfigLabel(name); label != "" {
-		if strings.Contains(label, ".") {
+	if tag := extractConfigTag(name); tag != "" {
+		if strings.Contains(tag, ".") {
 			// Show the original name and not text potentially extracted config
-			// label.
-			return "", UNSPECIFIED, fmt.Errorf("config label should not contain '.', found %q", name)
+			// tag.
+			return "", UNSPECIFIED, fmt.Errorf("config tag should not contain '.', found %q", name)
 		}
 		// Ensure once the normalised extraction has happened, we put the prefix
-		// back on, so that we don't loose the fact that the config is a label.
+		// back on, so that we don't loose the fact that the config is a tag.
 		//
 		// Ideally we would change Config from map[string]Level to
 		// map[string]ConfigEntry and then we wouldn't need this step, but that
 		// causes lots of issues in Juju directly.
-		name = fmt.Sprintf("#%s", label)
+		name = fmt.Sprintf("#%s", tag)
 	}
 
 	levelStr := strings.TrimSpace(pair[1])
@@ -87,8 +87,9 @@ func parseConfigValue(value string) (string, Level, error) {
 // so "DEBUG" is equivalent to `<root>=DEBUG`
 //
 // An example specification:
+//
 //	`<root>=ERROR; foo.bar=WARNING`
-//	`[LABEL]=ERROR`
+//	`[TAG]=ERROR`
 func ParseConfigString(specification string) (Config, error) {
 	specification = strings.TrimSpace(specification)
 	if specification == "" {
@@ -111,7 +112,7 @@ func ParseConfigString(specification string) (Config, error) {
 	return cfg, nil
 }
 
-func extractConfigLabel(s string) string {
+func extractConfigTag(s string) string {
 	name := strings.TrimSpace(s)
 	if len(s) < 2 {
 		return ""

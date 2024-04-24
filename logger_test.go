@@ -290,13 +290,13 @@ func (s *LoggerSuite) TestChildSameContext(c *gc.C) {
 	c.Check(b, gc.Not(gc.DeepEquals), loggo.GetLogger("a.b"))
 }
 
-func (s *LoggerSuite) TestChildSameContextWithLabels(c *gc.C) {
+func (s *LoggerSuite) TestChildSameContextWithTags(c *gc.C) {
 	ctx := loggo.NewContext(loggo.DEBUG)
 
 	logger := ctx.GetLogger("a", "parent")
 	b := logger.ChildWithTags("b", "child")
 
-	c.Check(ctx.GetAllLoggerLabels(), gc.DeepEquals, []string{"child", "parent"})
+	c.Check(ctx.GetAllLoggerTags(), gc.DeepEquals, []string{"child", "parent"})
 	c.Check(logger.Tags(), gc.DeepEquals, []string{"parent"})
 	c.Check(b.Tags(), gc.DeepEquals, []string{"child"})
 }
