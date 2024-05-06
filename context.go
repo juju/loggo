@@ -318,3 +318,30 @@ func (c *Context) ConfigureLoggers(specification string) error {
 	c.ApplyConfig(config)
 	return nil
 }
+
+// ApplyLoggerLevelByLabels sets the level of all loggers that have the
+// specified labels to the given level.
+func (c *Context) ApplyLoggerLevelByLabels(labels Labels, level Level) {
+	config := c.GetConfigByLabels(labels, level)
+	c.ApplyConfig(config)
+}
+
+// GetConfigByLabels locates all the modules that have the specified labels.
+// Returns the config if the module has the given labels, which
+// may be a subset of the logger labels. The label key and values must match
+// and it must match all of the labels in the argument.
+func (c *Context) GetConfigByLabels(labels Labels, level Level) Config {
+	c.modulesMutex.Lock()
+	defer c.modulesMutex.Unlock()
+
+	config := make(Config)
+	for name, module := range c.modules {
+		if !module.hasLabelIntersection(labels) {
+			continue
+		}
+
+		config[name] = level
+	}
+
+	return config
+}
