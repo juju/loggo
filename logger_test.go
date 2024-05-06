@@ -161,92 +161,130 @@ func (s *LoggerSuite) TestInheritedLabelsConfigByLabels(c *gc.C) {
 	// Apply the ERROR level to the logger with the labels "foo=bar".
 
 	context.ResetLoggerLevels()
-	logger.SetLogLevel(loggo.INFO)
-	context.ApplyLoggerLevelByLabels(loggo.Labels{"foo": "bar"}, loggo.ERROR)
+	context.ConfigureLoggers("testing=INFO")
+	context.ConfigureLoggers("testing.nested=ERROR", loggo.Labels{"foo": "bar"})
 
 	c.Check(nestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
 	c.Check(nestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.ERROR)
 
 	c.Check(deepNestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Check(deepNestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.ERROR)
-
-	// Apply the INFO level to the logger with the labels "foo=bar" and
-	// "fred=tim".
-
-	context.ApplyLoggerLevelByLabels(loggo.Labels{
-		"foo":  "bar",
-		"fred": "tim",
-	}, loggo.INFO)
-
-	c.Check(nestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
-	c.Check(nestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.ERROR)
-
-	c.Check(deepNestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.INFO)
-	c.Check(deepNestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.INFO)
+	c.Check(deepNestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.UNSPECIFIED)
 
 	logger.Logf(loggo.INFO, "without labels")
 	nestedLoggerWithLabels.Logf(loggo.INFO, "with nested labels")
 	deepNestedLoggerWithLabels.Logf(loggo.INFO, "with deep nested labels")
 
 	logs := writer.Log()
-	c.Assert(logs, gc.HasLen, 2, gc.Commentf("len = %d", len(logs)))
+	c.Assert(logs, gc.HasLen, 1, gc.Commentf("len = %d", len(logs)))
+
 	c.Check(logs[0].Message, gc.Equals, "without labels")
 	c.Check(logs[0].Labels, gc.HasLen, 0)
 
-	c.Check(logs[1].Message, gc.Equals, "with deep nested labels")
-	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
-		"foo":  "bar",
-		"fred": "tim",
-	})
-
 	writer.Clear()
 
-	// Apply the INFO level to the logger with the labels "hello=world".
+	// Apply the INFO level to the logger with the labels "foo=bar" and
+	// "fred=tim".
+
+	run := func(labels ...loggo.Labels) {
+		context.ConfigureLoggers("testing.nested.nested.deepnested=INFO", labels...)
+
+		c.Check(nestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.ERROR)
+		c.Check(nestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.ERROR)
+
+		c.Check(deepNestedLoggerWithLabels.EffectiveLogLevel(), gc.Equals, loggo.INFO)
+		c.Check(deepNestedLoggerWithLabels.LogLevel(), gc.Equals, loggo.INFO)
+
+		logger.Logf(loggo.INFO, "without labels")
+		nestedLoggerWithLabels.Logf(loggo.INFO, "with nested labels")
+		deepNestedLoggerWithLabels.Logf(loggo.INFO, "with deep nested labels")
+
+		logs = writer.Log()
+		c.Assert(logs, gc.HasLen, 2, gc.Commentf("len = %d", len(logs)))
+		c.Check(logs[0].Message, gc.Equals, "without labels")
+		c.Check(logs[0].Labels, gc.HasLen, 0)
+
+		c.Check(logs[1].Message, gc.Equals, "with deep nested labels")
+		c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
+			"foo":  "bar",
+			"fred": "tim",
+		})
+
+		writer.Clear()
+	}
+
+	// Notice that the order of the labels are merged and last label wins.
+
+	run(loggo.Labels{"foo": "bar", "fred": "tim"})
+	run(loggo.Labels{"foo": "bar"}, loggo.Labels{"fred": "tim"})
+	run(loggo.Labels{"foo": "bar", "fred": "john"}, loggo.Labels{"fred": "tim"})
+}
+
+func (s *LoggerSuite) TestInheritedLabelsConfigByLabelsIgnoresInvalidLabels(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	nestedLoggerWithLabels := logger.
+		ChildWithLabels("nested", loggo.Labels{"foo": "bar"})
+	deepNestedLoggerWithLabels := nestedLoggerWithLabels.
+		ChildWithLabels("nested", loggo.Labels{"foo": "bar"}).
+		ChildWithLabels("deepnested", loggo.Labels{"fred": "tim"})
+
+	// Apply the ERROR level to the logger with the labels "hello=world".
 	// Nothing matches this, so it should have no effect.
 
-	context.ApplyLoggerLevelByLabels(loggo.Labels{
+	context.ConfigureLoggers("testing.nested.nested.deepnested=ERROR", loggo.Labels{
 		"hello": "world",
-	}, loggo.INFO)
+	})
 
 	logger.Logf(loggo.INFO, "without labels")
 	nestedLoggerWithLabels.Logf(loggo.INFO, "with nested labels")
 	deepNestedLoggerWithLabels.Logf(loggo.INFO, "with deep nested labels")
 
-	logs = writer.Log()
-	c.Assert(logs, gc.HasLen, 2, gc.Commentf("len = %d", len(logs)))
+	logs := writer.Log()
+	c.Assert(logs, gc.HasLen, 3, gc.Commentf("len = %d", len(logs)))
 	c.Check(logs[0].Message, gc.Equals, "without labels")
 	c.Check(logs[0].Labels, gc.HasLen, 0)
 
-	c.Check(logs[1].Message, gc.Equals, "with deep nested labels")
-	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
+	c.Check(logs[1].Message, gc.Equals, "with nested labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+
+	c.Check(logs[2].Message, gc.Equals, "with deep nested labels")
+	c.Check(logs[2].Labels, gc.DeepEquals, loggo.Labels{
 		"foo":  "bar",
 		"fred": "tim",
 	})
 
 	writer.Clear()
 
-	// Apply the INFO level to the logger with the labels "foo=bar",
+	// Apply the ERROR level to the logger with the labels "foo=bar",
 	// "fred=tim" and "hello=world".
 	// This should not match anything and have no effect, as we expect
 	// to match ALL the labels.
 
-	context.ApplyLoggerLevelByLabels(loggo.Labels{
+	context.ConfigureLoggers("testing.nested.nested.deepnested=ERROR", loggo.Labels{
 		"foo":   "bar",
 		"fred":  "tim",
 		"hello": "world",
-	}, loggo.ERROR)
+	})
 
 	logger.Logf(loggo.INFO, "without labels")
 	nestedLoggerWithLabels.Logf(loggo.INFO, "with nested labels")
 	deepNestedLoggerWithLabels.Logf(loggo.INFO, "with deep nested labels")
 
 	logs = writer.Log()
-	c.Assert(logs, gc.HasLen, 2, gc.Commentf("len = %d", len(logs)))
+	c.Assert(logs, gc.HasLen, 3, gc.Commentf("len = %d", len(logs)))
 	c.Check(logs[0].Message, gc.Equals, "without labels")
 	c.Check(logs[0].Labels, gc.HasLen, 0)
 
-	c.Check(logs[1].Message, gc.Equals, "with deep nested labels")
-	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{
+	c.Check(logs[1].Message, gc.Equals, "with nested labels")
+	c.Check(logs[1].Labels, gc.DeepEquals, loggo.Labels{"foo": "bar"})
+
+	c.Check(logs[2].Message, gc.Equals, "with deep nested labels")
+	c.Check(logs[2].Labels, gc.DeepEquals, loggo.Labels{
 		"foo":  "bar",
 		"fred": "tim",
 	})

@@ -136,14 +136,14 @@ func (c *Context) getLoggerModule(name string, tags []string) *module {
 }
 
 // getLoggerModulesByTag returns modules that have the associated tag.
-func (c *Context) getLoggerModulesByTag(label string) []*module {
+func (c *Context) getLoggerModulesByTag(tag string) []*module {
 	var modules []*module
 	for _, mod := range c.modules {
 		if len(mod.tags) == 0 {
 			continue
 		}
 
-		if _, ok := mod.tagsLookup[label]; ok {
+		if _, ok := mod.tagsLookup[tag]; ok {
 			modules = append(modules, mod)
 		}
 	}
@@ -179,15 +179,22 @@ func (c *Context) CompleteConfig() Config {
 }
 
 // ApplyConfig configures the logging modules according to the provided config.
-func (c *Context) ApplyConfig(config Config) {
+func (c *Context) ApplyConfig(config Config, labels ...Labels) {
+	label := mergeLabels(labels)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	for name, level := range config {
 		tag := extractConfigTag(name)
 		if tag == "" {
 			module := c.getLoggerModule(name, nil)
+
+			// If the module doesn't have the label, then we skip it.
+			if !module.hasLabelIntersection(label) {
+				continue
+			}
 			module.setLevel(level)
-			continue
 		}
 
 		// Ensure that we save the config for lazy loggers to pick up correctly.
@@ -196,6 +203,11 @@ func (c *Context) ApplyConfig(config Config) {
 		// Config contains a named tag, use that for selecting the loggers.
 		modules := c.getLoggerModulesByTag(tag)
 		for _, module := range modules {
+			// If the module doesn't have the label, then we skip it.
+			if !module.hasLabelIntersection(label) {
+				continue
+			}
+
 			module.setLevel(level)
 		}
 	}
@@ -302,46 +314,26 @@ func (c *Context) ResetWriters() {
 
 // ConfigureLoggers configures loggers according to the given string
 // specification, which specifies a set of modules and their associated
-// logging levels.  Loggers are colon- or semicolon-separated; each
+// logging levels. Loggers are colon- or semicolon-separated; each
 // module is specified as <modulename>=<level>.  White space outside of
-// module names and levels is ignored.  The root module is specified
+// module names and levels is ignored. The root module is specified
 // with the name "<root>".
 //
 // An example specification:
 //
-//	`<root>=ERROR; foo.bar=WARNING`
-func (c *Context) ConfigureLoggers(specification string) error {
+//	<root>=ERROR; foo.bar=WARNING
+//
+// Label matching can be applied to the loggers by providing a set of labels
+// to the function. If a logger has a label that matches the provided labels,
+// then the logger will be configured with the provided level. If the logger
+// does not have a label that matches the provided labels, then the logger
+// will not be configured. No labels will configure all loggers in the
+// specification.
+func (c *Context) ConfigureLoggers(specification string, labels ...Labels) error {
 	config, err := ParseConfigString(specification)
 	if err != nil {
 		return err
 	}
-	c.ApplyConfig(config)
+	c.ApplyConfig(config, labels...)
 	return nil
-}
-
-// ApplyLoggerLevelByLabels sets the level of all loggers that have the
-// specified labels to the given level.
-func (c *Context) ApplyLoggerLevelByLabels(labels Labels, level Level) {
-	config := c.GetConfigByLabels(labels, level)
-	c.ApplyConfig(config)
-}
-
-// GetConfigByLabels locates all the modules that have the specified labels.
-// Returns the config if the module has the given labels, which
-// may be a subset of the logger labels. The label key and values must match
-// and it must match all of the labels in the argument.
-func (c *Context) GetConfigByLabels(labels Labels, level Level) Config {
-	c.modulesMutex.Lock()
-	defer c.modulesMutex.Unlock()
-
-	config := make(Config)
-	for name, module := range c.modules {
-		if !module.hasLabelIntersection(labels) {
-			continue
-		}
-
-		config[name] = level
-	}
-
-	return config
 }
