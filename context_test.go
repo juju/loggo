@@ -261,7 +261,7 @@ func (*ContextSuite) TestApplyConfigTags(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggers(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTagsAppliesToNewLoggers(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 
 	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
@@ -289,7 +289,7 @@ func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggers(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggersWithMultipleTags(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTagsAppliesToNewLoggersWithMultipleTags(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 
 	// Invert the order here, to ensure that the config order doesn't matter,
@@ -312,7 +312,7 @@ func (*ContextSuite) TestApplyConfigLabelsAppliesToNewLoggersWithMultipleTags(c 
 		})
 }
 
-func (*ContextSuite) TestApplyConfigLabelsResetLoggerLevels(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTagsResetLoggerLevels(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 
 	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
@@ -339,7 +339,93 @@ func (*ContextSuite) TestApplyConfigLabelsResetLoggerLevels(c *gc.C) {
 		})
 }
 
-func (*ContextSuite) TestApplyConfigTagsAddative(c *gc.C) {
+func (*ContextSuite) TestApplyConfigTagsResetLoggerLevelsUsingLabels(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+
+	context.GetLogger("a", "one").ChildWithLabels("b", loggo.Labels{"x": "y"})
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+
+	// If a label is available on a logger, then resetting the levels should
+	// not remove the label.
+
+	context.ResetLoggerLevels()
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"": loggo.WARNING,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.UNSPECIFIED,
+			"a.b": loggo.UNSPECIFIED,
+			"c":   loggo.UNSPECIFIED,
+			"c.d": loggo.UNSPECIFIED,
+			"e":   loggo.UNSPECIFIED,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigTagsResetLoggerLevelsUsingLabelsRemoval(c *gc.C) {
+	context := loggo.NewContext(loggo.WARNING)
+
+	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
+	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})
+
+	context.GetLogger("a", "one").ChildWithLabels("b", loggo.Labels{"x": "y"}).ChildWithTags("g", "one")
+	context.GetLogger("c.d", "one")
+	context.GetLogger("e", "two")
+	context.GetLogger("f")
+
+	// Ensure that the logger that matches exactly the label is removed,
+	// including it's children. So we observe hierarchy in the removal.
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"":      loggo.WARNING,
+			"a":     loggo.TRACE,
+			"a.b.g": loggo.TRACE,
+			"c.d":   loggo.TRACE,
+			"e":     loggo.DEBUG,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":      loggo.WARNING,
+			"a":     loggo.TRACE,
+			"a.b":   loggo.UNSPECIFIED,
+			"a.b.g": loggo.TRACE,
+			"c":     loggo.UNSPECIFIED,
+			"c.d":   loggo.TRACE,
+			"e":     loggo.DEBUG,
+			"f":     loggo.UNSPECIFIED,
+		})
+
+	context.ResetLoggerLevels(loggo.Labels{"x": "y"})
+
+	c.Assert(context.Config(), gc.DeepEquals,
+		loggo.Config{
+			"":    loggo.WARNING,
+			"a":   loggo.TRACE,
+			"c.d": loggo.TRACE,
+			"e":   loggo.DEBUG,
+		})
+	c.Assert(context.CompleteConfig(), gc.DeepEquals,
+		loggo.Config{
+			"":      loggo.WARNING,
+			"a":     loggo.TRACE,
+			"a.b":   loggo.UNSPECIFIED,
+			"a.b.g": loggo.UNSPECIFIED,
+			"c":     loggo.UNSPECIFIED,
+			"c.d":   loggo.TRACE,
+			"e":     loggo.DEBUG,
+			"f":     loggo.UNSPECIFIED,
+		})
+}
+
+func (*ContextSuite) TestApplyConfigTagsAdditive(c *gc.C) {
 	context := loggo.NewContext(loggo.WARNING)
 	context.ApplyConfig(loggo.Config{"#one": loggo.TRACE})
 	context.ApplyConfig(loggo.Config{"#two": loggo.DEBUG})

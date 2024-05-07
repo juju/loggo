@@ -39,6 +39,29 @@ func (s *LoggerSuite) TestInheritedLabels(c *gc.C) {
 	nestedLoggerWithLabels := logger.
 		ChildWithLabels("nested", loggo.Labels{"foo": "bar"})
 	deepNestedLoggerWithLabels := nestedLoggerWithLabels.
+		ChildWithLabels("nested", loggo.Labels{"foo": "baz"}).
+		ChildWithLabels("deepnested", loggo.Labels{"fred": "tim"})
+
+	loggerWithTagsAndLabels := logger.
+		ChildWithLabels("nested-labels", loggo.Labels{"hello": "world"}).
+		ChildWithTags("nested-tag", "tag1", "tag2")
+
+	c.Check(nestedLoggerWithLabels.Labels(), gc.DeepEquals, loggo.Labels{"foo": "bar"})
+	c.Check(deepNestedLoggerWithLabels.Labels(), gc.DeepEquals, loggo.Labels{"foo": "baz", "fred": "tim"})
+	c.Check(loggerWithTagsAndLabels.Labels(), gc.DeepEquals, loggo.Labels{"hello": "world"})
+}
+
+func (s *LoggerSuite) TestInheritedLabelsInLogs(c *gc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, gc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	nestedLoggerWithLabels := logger.
+		ChildWithLabels("nested", loggo.Labels{"foo": "bar"})
+	deepNestedLoggerWithLabels := nestedLoggerWithLabels.
 		ChildWithLabels("nested", loggo.Labels{"foo": "bar"}).
 		ChildWithLabels("deepnested", loggo.Labels{"fred": "tim"})
 

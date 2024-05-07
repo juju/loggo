@@ -74,12 +74,12 @@ func (c *Context) GetAllLoggerTags() []string {
 			names[k] = v
 		}
 	}
-	labels := make([]string, 0, len(names))
+	tags := make([]string, 0, len(names))
 	for name := range names {
-		labels = append(labels, name)
+		tags = append(tags, name)
 	}
-	sort.Strings(labels)
-	return labels
+	sort.Strings(tags)
+	return tags
 }
 
 func (c *Context) getLoggerModule(name string, tags []string) *module {
@@ -215,15 +215,22 @@ func (c *Context) ApplyConfig(config Config, labels ...Labels) {
 
 // ResetLoggerLevels iterates through the known logging modules and sets the
 // levels of all to UNSPECIFIED, except for <root> which is set to WARNING.
-func (c *Context) ResetLoggerLevels() {
+// If labels are provided, then only loggers that have the provided labels
+// will be reset.
+func (c *Context) ResetLoggerLevels(labels ...Labels) {
+	label := mergeLabels(labels)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	// Setting the root module to UNSPECIFIED will set it to WARNING.
 	for _, module := range c.modules {
+		if !module.hasLabelIntersection(label) {
+			continue
+		}
+
 		module.setLevel(UNSPECIFIED)
 	}
-	// We can safely just wipe everything here.
-	c.modulesTagConfig = make(map[string]Level)
 }
 
 func (c *Context) write(entry Entry) {
