@@ -18,26 +18,7 @@ import (
 // The zero Logger value is usable - any messages logged
 // to it will be sent to the root Logger.
 type Logger struct {
-	impl   *module
-	labels Labels
-}
-
-// WithLabels returns a logger whose module is the same as this logger and
-// the returned logger will add the specified labels to each log entry.
-// WithLabels only target a specific logger with labels. Children of the logger
-// will not inherit the labels.
-// To add labels to all child loggers, use ChildWithLabels.
-func (logger Logger) WithLabels(labels Labels) Logger {
-	if len(labels) == 0 {
-		return logger
-	}
-
-	result := logger
-	result.labels = make(Labels)
-	for k, v := range labels {
-		result.labels[k] = v
-	}
-	return result
+	impl *module
 }
 
 func (logger Logger) getModule() *module {
@@ -131,6 +112,11 @@ func (logger Logger) Tags() []string {
 	return logger.getModule().tags
 }
 
+// Labels returns the configured labels of the logger's module.
+func (logger Logger) Labels() Labels {
+	return logger.getModule().labels
+}
+
 // EffectiveLogLevel returns the effective min log level of
 // the receiver - that is, messages with a lesser severity
 // level will be discarded.
@@ -159,15 +145,6 @@ func (logger Logger) Logf(level Level, message string, args ...interface{}) {
 	logger.LogCallf(2, level, message, args...)
 }
 
-// LogWithlabelsf logs a printf-formatted message at the given level with extra
-// labels. The given labels will be added to the log entry.
-// A message will be discarded if level is less than the the effective log level
-// of the logger. Note that the writers may also filter out messages that are
-// less than their registered minimum severity level.
-func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map[string]string, args ...interface{}) {
-	logger.logCallf(2, level, message, extraLabels, args...)
-}
-
 // LogCallf logs a printf-formatted message at the given level.
 // The location of the call is indicated by the calldepth argument.
 // A calldepth of 1 means the function that called this function.
@@ -176,12 +153,12 @@ func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
 func (logger Logger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
-	logger.logCallf(calldepth+1, level, message, nil, args...)
+	logger.logCallf(calldepth+1, level, message, args...)
 }
 
 // logCallf is a private method for logging a printf-formatted message at the
 // given level. Used by LogWithLabelsf and LogCallf.
-func (logger Logger) logCallf(calldepth int, level Level, message string, extraLabels map[string]string, args ...interface{}) {
+func (logger Logger) logCallf(calldepth int, level Level, message string, args ...interface{}) {
 	module := logger.getModule()
 	if !module.willWrite(level) {
 		return
@@ -224,13 +201,6 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	for k, v := range logger.impl.labels {
 		entry.Labels[k] = v
 	}
-	for k, v := range logger.labels {
-		entry.Labels[k] = v
-	}
-	// Add extra labels if there's any given.
-	for k, v := range extraLabels {
-		entry.Labels[k] = v
-	}
 	module.write(entry)
 }
 
@@ -252,12 +222,6 @@ func (logger Logger) Warningf(message string, args ...interface{}) {
 // Infof logs the printf-formatted message at info level.
 func (logger Logger) Infof(message string, args ...interface{}) {
 	logger.Logf(INFO, message, args...)
-}
-
-// InfoWithLabelsf logs the printf-formatted message at info level with extra
-// labels.
-func (logger Logger) InfoWithLabelsf(message string, extraLabels map[string]string, args ...interface{}) {
-	logger.LogWithLabelsf(INFO, message, extraLabels, args...)
 }
 
 // Debugf logs the printf-formatted message at debug level.
