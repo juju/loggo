@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	// defaultCallDepth is the default number of stack frames to ascend to
+	// find the caller.
+	defaultCallDepth = 2
+)
+
 // A Logger represents a logging module. It has an associated logging
 // level which can be changed; messages of lesser severity will
 // be dropped. Loggers have a hierarchical relationship - see
@@ -20,6 +26,9 @@ import (
 type Logger struct {
 	impl   *module
 	labels Labels
+
+	// CallDepth is the number of stack frames to ascend to find the caller.
+	callDepth int
 }
 
 // WithLabels returns a logger whose module is the same as this logger and
@@ -37,6 +46,14 @@ func (logger Logger) WithLabels(labels Labels) Logger {
 	for k, v := range labels {
 		result.labels[k] = v
 	}
+	return result
+}
+
+// WithCallDepth returns a logger whose call depth is set to the specified
+// value.
+func (logger Logger) WithCallDepth(callDepth int) Logger {
+	result := logger
+	result.callDepth = callDepth
 	return result
 }
 
@@ -59,7 +76,10 @@ func (logger Logger) Root() Logger {
 // "a.b.c" is "a.b".
 // The Parent of the root logger is still the root logger.
 func (logger Logger) Parent() Logger {
-	return Logger{impl: logger.getModule().parent}
+	return Logger{
+		impl:      logger.getModule().parent,
+		callDepth: defaultCallDepth,
+	}
 }
 
 // Child returns the Logger whose module name is the composed of this
@@ -156,7 +176,7 @@ func (logger Logger) SetLogLevel(level Level) {
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
 func (logger Logger) Logf(level Level, message string, args ...interface{}) {
-	logger.LogCallf(2, level, message, args...)
+	logger.LogCallf(logger.callDepth, level, message, args...)
 }
 
 // LogWithlabelsf logs a printf-formatted message at the given level with extra
@@ -165,7 +185,7 @@ func (logger Logger) Logf(level Level, message string, args ...interface{}) {
 // of the logger. Note that the writers may also filter out messages that are
 // less than their registered minimum severity level.
 func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map[string]string, args ...interface{}) {
-	logger.logCallf(2, level, message, extraLabels, args...)
+	logger.logCallf(logger.callDepth, level, message, extraLabels, args...)
 }
 
 // LogCallf logs a printf-formatted message at the given level.

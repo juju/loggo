@@ -57,7 +57,8 @@ func (c *Context) GetLogger(name string, tags ...string) Logger {
 	defer c.modulesMutex.Unlock()
 
 	return Logger{
-		impl: c.getLoggerModule(name, tags),
+		impl:      c.getLoggerModule(name, tags),
+		callDepth: defaultCallDepth,
 	}
 }
 
