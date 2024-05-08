@@ -18,7 +18,7 @@ func (*LoggerSuite) SetUpTest(c *gc.C) {
 }
 
 func (s *LoggerSuite) TestRootLogger(c *gc.C) {
-	root := loggo.Logger{}
+	root := loggo.Logger{}.WithCallDepth(2)
 	c.Check(root.Name(), gc.Equals, "<root>")
 	c.Check(root.LogLevel(), gc.Equals, loggo.WARNING)
 	c.Check(root.IsErrorEnabled(), gc.Equals, true)
