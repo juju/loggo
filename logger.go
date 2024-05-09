@@ -241,7 +241,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	if len(module.tags) > 0 {
 		entry.Labels[LoggerTags] = strings.Join(module.tags, ",")
 	}
-	for k, v := range logger.impl.labels {
+	for k, v := range module.labels {
 		entry.Labels[k] = v
 	}
 	for k, v := range logger.labels {
