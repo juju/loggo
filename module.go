@@ -61,3 +61,15 @@ func (m *module) write(entry Entry) {
 	entry.Module = m.name
 	m.context.write(entry)
 }
+
+// hasLabelIntersection returns true if the module has the given labels, which
+// may be a subset of the module's labels. The label key and values must match
+// and it must match all of the labels in the argument.
+func (m *module) hasLabelIntersection(labels Labels) bool {
+	for labelKey, labelValue := range labels {
+		if moduleValue, ok := m.labels[labelKey]; !ok || moduleValue != labelValue {
+			return false
+		}
+	}
+	return true
+}

@@ -74,12 +74,12 @@ func (c *Context) GetAllLoggerTags() []string {
 			names[k] = v
 		}
 	}
-	labels := make([]string, 0, len(names))
+	tags := make([]string, 0, len(names))
 	for name := range names {
-		labels = append(labels, name)
+		tags = append(tags, name)
 	}
-	sort.Strings(labels)
-	return labels
+	sort.Strings(tags)
+	return tags
 }
 
 func (c *Context) getLoggerModule(name string, tags []string) *module {
@@ -136,14 +136,14 @@ func (c *Context) getLoggerModule(name string, tags []string) *module {
 }
 
 // getLoggerModulesByTag returns modules that have the associated tag.
-func (c *Context) getLoggerModulesByTag(label string) []*module {
+func (c *Context) getLoggerModulesByTag(tag string) []*module {
 	var modules []*module
 	for _, mod := range c.modules {
 		if len(mod.tags) == 0 {
 			continue
 		}
 
-		if _, ok := mod.tagsLookup[label]; ok {
+		if _, ok := mod.tagsLookup[tag]; ok {
 			modules = append(modules, mod)
 		}
 	}
@@ -179,15 +179,22 @@ func (c *Context) CompleteConfig() Config {
 }
 
 // ApplyConfig configures the logging modules according to the provided config.
-func (c *Context) ApplyConfig(config Config) {
+func (c *Context) ApplyConfig(config Config, labels ...Labels) {
+	label := mergeLabels(labels)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	for name, level := range config {
 		tag := extractConfigTag(name)
 		if tag == "" {
 			module := c.getLoggerModule(name, nil)
+
+			// If the module doesn't have the label, then we skip it.
+			if !module.hasLabelIntersection(label) {
+				continue
+			}
 			module.setLevel(level)
-			continue
 		}
 
 		// Ensure that we save the config for lazy loggers to pick up correctly.
@@ -196,6 +203,11 @@ func (c *Context) ApplyConfig(config Config) {
 		// Config contains a named tag, use that for selecting the loggers.
 		modules := c.getLoggerModulesByTag(tag)
 		for _, module := range modules {
+			// If the module doesn't have the label, then we skip it.
+			if !module.hasLabelIntersection(label) {
+				continue
+			}
+
 			module.setLevel(level)
 		}
 	}
@@ -203,15 +215,22 @@ func (c *Context) ApplyConfig(config Config) {
 
 // ResetLoggerLevels iterates through the known logging modules and sets the
 // levels of all to UNSPECIFIED, except for <root> which is set to WARNING.
-func (c *Context) ResetLoggerLevels() {
+// If labels are provided, then only loggers that have the provided labels
+// will be reset.
+func (c *Context) ResetLoggerLevels(labels ...Labels) {
+	label := mergeLabels(labels)
+
 	c.modulesMutex.Lock()
 	defer c.modulesMutex.Unlock()
+
 	// Setting the root module to UNSPECIFIED will set it to WARNING.
 	for _, module := range c.modules {
+		if !module.hasLabelIntersection(label) {
+			continue
+		}
+
 		module.setLevel(UNSPECIFIED)
 	}
-	// We can safely just wipe everything here.
-	c.modulesTagConfig = make(map[string]Level)
 }
 
 func (c *Context) write(entry Entry) {
@@ -302,19 +321,26 @@ func (c *Context) ResetWriters() {
 
 // ConfigureLoggers configures loggers according to the given string
 // specification, which specifies a set of modules and their associated
-// logging levels.  Loggers are colon- or semicolon-separated; each
+// logging levels. Loggers are colon- or semicolon-separated; each
 // module is specified as <modulename>=<level>.  White space outside of
-// module names and levels is ignored.  The root module is specified
+// module names and levels is ignored. The root module is specified
 // with the name "<root>".
 //
 // An example specification:
 //
-//	`<root>=ERROR; foo.bar=WARNING`
-func (c *Context) ConfigureLoggers(specification string) error {
+//	<root>=ERROR; foo.bar=WARNING
+//
+// Label matching can be applied to the loggers by providing a set of labels
+// to the function. If a logger has a label that matches the provided labels,
+// then the logger will be configured with the provided level. If the logger
+// does not have a label that matches the provided labels, then the logger
+// will not be configured. No labels will configure all loggers in the
+// specification.
+func (c *Context) ConfigureLoggers(specification string, labels ...Labels) error {
 	config, err := ParseConfigString(specification)
 	if err != nil {
 		return err
 	}
-	c.ApplyConfig(config)
+	c.ApplyConfig(config, labels...)
 	return nil
 }
