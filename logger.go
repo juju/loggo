@@ -5,7 +5,6 @@ package loggo
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -176,7 +175,11 @@ func (logger Logger) SetLogLevel(level Level) {
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
 func (logger Logger) Logf(level Level, message string, args ...interface{}) {
-	logger.LogCallf(logger.callDepth, level, message, args...)
+	logger.logf(level, message, args...)
+}
+
+func (logger Logger) logf(level Level, message string, args ...interface{}) {
+	logger.logCallf(logger.callDepth, level, message, nil, args...)
 }
 
 // LogWithlabelsf logs a printf-formatted message at the given level with extra
@@ -185,7 +188,7 @@ func (logger Logger) Logf(level Level, message string, args ...interface{}) {
 // of the logger. Note that the writers may also filter out messages that are
 // less than their registered minimum severity level.
 func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map[string]string, args ...interface{}) {
-	logger.logCallf(logger.callDepth, level, message, extraLabels, args...)
+	logger.logCallf(logger.callDepth-1, level, message, extraLabels, args...)
 }
 
 // LogCallf logs a printf-formatted message at the given level.
@@ -196,7 +199,7 @@ func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
 func (logger Logger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
-	logger.logCallf(calldepth+1, level, message, nil, args...)
+	logger.logCallf(calldepth, level, message, nil, args...)
 }
 
 // logCallf is a private method for logging a printf-formatted message at the
@@ -210,7 +213,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	now := time.Now() // get this early.
 	// Param to Caller is the call depth.  Since this method is called from
 	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := runtime.Caller(calldepth + 1)
+	_, file, line, ok := caller(calldepth + 1)
 	if !ok {
 		file = "???"
 		line = 0
@@ -256,38 +259,38 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 
 // Criticalf logs the printf-formatted message at critical level.
 func (logger Logger) Criticalf(message string, args ...interface{}) {
-	logger.Logf(CRITICAL, message, args...)
+	logger.logf(CRITICAL, message, args...)
 }
 
 // Errorf logs the printf-formatted message at error level.
 func (logger Logger) Errorf(message string, args ...interface{}) {
-	logger.Logf(ERROR, message, args...)
+	logger.logf(ERROR, message, args...)
 }
 
 // Warningf logs the printf-formatted message at warning level.
 func (logger Logger) Warningf(message string, args ...interface{}) {
-	logger.Logf(WARNING, message, args...)
+	logger.logf(WARNING, message, args...)
 }
 
 // Infof logs the printf-formatted message at info level.
 func (logger Logger) Infof(message string, args ...interface{}) {
-	logger.Logf(INFO, message, args...)
+	logger.logf(INFO, message, args...)
 }
 
 // InfoWithLabelsf logs the printf-formatted message at info level with extra
 // labels.
 func (logger Logger) InfoWithLabelsf(message string, extraLabels map[string]string, args ...interface{}) {
-	logger.LogWithLabelsf(INFO, message, extraLabels, args...)
+	logger.logCallf(logger.callDepth, INFO, message, extraLabels, args...)
 }
 
 // Debugf logs the printf-formatted message at debug level.
 func (logger Logger) Debugf(message string, args ...interface{}) {
-	logger.Logf(DEBUG, message, args...)
+	logger.logf(DEBUG, message, args...)
 }
 
 // Tracef logs the printf-formatted message at trace level.
 func (logger Logger) Tracef(message string, args ...interface{}) {
-	logger.Logf(TRACE, message, args...)
+	logger.logf(TRACE, message, args...)
 }
 
 // IsLevelEnabled returns whether debugging is enabled
@@ -324,4 +327,10 @@ func (logger Logger) IsDebugEnabled() bool {
 // at trace level.
 func (logger Logger) IsTraceEnabled() bool {
 	return logger.IsLevelEnabled(TRACE)
+}
+
+// Helper marks the caller as a helper function and will skip it when capturing
+// the callsite location.
+func (logger Logger) Helper() {
+	helper(2)
 }

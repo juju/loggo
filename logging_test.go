@@ -63,26 +63,39 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
 }
 
 func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
-	s.logger.Criticalf("critical message") //tag critical-location
-	s.logger.Errorf("error message")       //tag error-location
-	s.logger.Warningf("warning message")   //tag warning-location
-	s.logger.Infof("info message")         //tag info-location
-	s.logger.Debugf("debug message")       //tag debug-location
-	s.logger.Tracef("trace message")       //tag trace-location
+	s.helperInfof(c, "helper message")                             //tag helper-location
+	s.logger.Criticalf("critical message")                         //tag critical-location
+	s.logger.Errorf("error message")                               //tag error-location
+	s.logger.Warningf("warning message")                           //tag warning-location
+	s.logger.Infof("info message")                                 //tag info-location
+	s.logger.Debugf("debug message")                               //tag debug-location
+	s.logger.Tracef("trace message")                               //tag trace-location
+	s.logger.Logf(loggo.INFO, "logf msg")                          //tag logf-location
+	s.logger.LogCallf(1, loggo.INFO, "logcallf msg")               //tag logcallf-location
+	s.logger.LogWithLabelsf(loggo.INFO, "logwithlabelsf msg", nil) //tag logwithlabelsf-location
 
 	log := s.writer.Log()
 	tags := []string{
+		"helper-location",
 		"critical-location",
 		"error-location",
 		"warning-location",
 		"info-location",
 		"debug-location",
 		"trace-location",
+		"logf-location",
+		"logcallf-location",
+		"logwithlabelsf-location",
 	}
 	c.Assert(log, gc.HasLen, len(tags))
 	for x := range tags {
 		assertLocation(c, log[x], tags[x])
 	}
+}
+
+func (s *LoggingSuite) helperInfof(c *gc.C, format string, args ...any) {
+	s.logger.Helper()
+	s.logger.Infof(format, args...)
 }
 
 func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
