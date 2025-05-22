@@ -13,10 +13,10 @@ var (
 	helpers     map[uintptr]struct{}
 )
 
-// Helper marks the caller as a helper function and will skip it when capturing
-// the callsite location.
-func Helper() {
-	helper(2)
+// Helper passed 1 marks the caller as a helper function and will skip it when
+// capturing the callsite location.
+func Helper(skip int) {
+	helper(skip + 1)
 }
 
 func helper(skip int) {
