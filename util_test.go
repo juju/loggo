@@ -20,8 +20,9 @@ func init() {
 
 func assertLocation(c *gc.C, msg loggo.Entry, tag string) {
 	loc := location(tag)
-	c.Assert(msg.Filename, gc.Equals, loc.file)
-	c.Assert(msg.Line, gc.Equals, loc.line)
+	c.Check(fmt.Sprintf("%s:%d", msg.Filename, msg.Line), gc.Equals,
+		fmt.Sprintf("%s:%d", loc.file, loc.line),
+		gc.Commentf("tag=%s", tag))
 }
 
 // All this location stuff is to avoid having hard coded line numbers

@@ -5,7 +5,6 @@ package loggo
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -210,7 +209,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	now := time.Now() // get this early.
 	// Param to Caller is the call depth.  Since this method is called from
 	// the Logger methods, we want the place that those were called from.
-	_, file, line, ok := runtime.Caller(calldepth + 1)
+	_, file, line, ok := caller(calldepth + 1)
 	if !ok {
 		file = "???"
 		line = 0
@@ -324,4 +323,10 @@ func (logger Logger) IsDebugEnabled() bool {
 // at trace level.
 func (logger Logger) IsTraceEnabled() bool {
 	return logger.IsLevelEnabled(TRACE)
+}
+
+// Helper marks the caller as a helper function and will skip it when capturing
+// the callsite location.
+func (logger Logger) Helper() {
+	helper(2)
 }

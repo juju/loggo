@@ -63,6 +63,7 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
 }
 
 func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
+	s.helperInfof(c, "helper message")     //tag helper-location
 	s.logger.Criticalf("critical message") //tag critical-location
 	s.logger.Errorf("error message")       //tag error-location
 	s.logger.Warningf("warning message")   //tag warning-location
@@ -72,6 +73,7 @@ func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
 
 	log := s.writer.Log()
 	tags := []string{
+		"helper-location",
 		"critical-location",
 		"error-location",
 		"warning-location",
@@ -83,6 +85,11 @@ func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
 	for x := range tags {
 		assertLocation(c, log[x], tags[x])
 	}
+}
+
+func (s *LoggingSuite) helperInfof(c *gc.C, format string, args ...any) {
+	s.logger.Helper()
+	s.logger.Infof(format, args...)
 }
 
 func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
