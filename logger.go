@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/juju/loggo/v2/attrs"
 )
 
 const (
@@ -229,8 +231,9 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	// `go vet` tool for the obvious cases where someone has forgotten
 	// to provide an arg.
 	formattedMessage := message
-	if len(args) > 0 {
-		formattedMessage = fmt.Sprintf(message, args...)
+	messageArgs, attrs := attrs.Attrs(args...)
+	if len(messageArgs) > 0 {
+		formattedMessage = fmt.Sprintf(message, messageArgs...)
 	}
 
 	entry := Entry{
@@ -240,6 +243,7 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 		Timestamp: now,
 		Message:   formattedMessage,
 		PC:        pc,
+		Attrs:     attrs,
 	}
 	entry.Labels = make(Labels)
 	if len(module.tags) > 0 {

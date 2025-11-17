@@ -59,6 +59,7 @@ func Any(k string, v any) AttrValue[any] {
 	return attr[any]{key: k, value: v}
 }
 
+// Valid checks that all attributes are of a valid type.
 func Valid(attrs []any) error {
 	for _, attr := range attrs {
 		switch a := attr.(type) {
@@ -76,4 +77,38 @@ func Valid(attrs []any) error {
 		}
 	}
 	return nil
+}
+
+// Attrs separates attributes into generic and typed attributes, but keeps
+// them in the same order as provided.
+func Attrs(attrs ...any) ([]any, []any) {
+	var (
+		a []any
+		b []any
+	)
+	for _, attr := range attrs {
+		switch attr.(type) {
+		case AttrValue[string]:
+			b = append(b, attr)
+		case AttrValue[int]:
+			b = append(b, attr)
+		case AttrValue[int64]:
+			b = append(b, attr)
+		case AttrValue[uint64]:
+			b = append(b, attr)
+		case AttrValue[float64]:
+			b = append(b, attr)
+		case AttrValue[bool]:
+			b = append(b, attr)
+		case AttrValue[time.Time]:
+			b = append(b, attr)
+		case AttrValue[time.Duration]:
+			b = append(b, attr)
+		case AttrValue[any]:
+			b = append(b, attr)
+		default:
+			a = append(a, attr)
+		}
+	}
+	return a, b
 }
