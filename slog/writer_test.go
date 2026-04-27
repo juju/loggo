@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/juju/loggo/v2"
-	"github.com/juju/loggo/v2/attrs"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/loggo/v3/attrs"
 )
 
 // mockHandler captures records written via Handle for inspection.

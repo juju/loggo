@@ -1,4 +1,4 @@
-module github.com/juju/loggo/v2
+module github.com/juju/loggo/v3
 
 go 1.25
 

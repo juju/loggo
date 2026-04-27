@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/juju/loggo/v2"
-	"github.com/juju/loggo/v2/attrs"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/loggo/v3/attrs"
 )
 
 var first = loggo.GetLogger("first")

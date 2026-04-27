@@ -46,7 +46,7 @@ logger, but have it emit all logging levels you need to do the following.
 	loggo.RegisterWriter("default", writer)
 
 To make loggo produce colored output, you can do the following,
-having imported github.com/juju/loggo/v2/loggocolor:
+having imported github.com/juju/loggo/v3/loggocolor:
 
 	loggo.ReplaceDefaultWriter(loggocolor.NewWriter(os.Stderr))
 */

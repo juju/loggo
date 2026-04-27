@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/juju/loggo/v2"
+	"github.com/juju/loggo/v3"
 )
 
 var second = loggo.GetLogger("second")

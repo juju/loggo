@@ -6,10 +6,11 @@ package loggo
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
-	"github.com/juju/loggo/v2/attrs"
+	"github.com/juju/loggo/v3/attrs"
 )
 
 const (
@@ -272,13 +273,9 @@ func (logger Logger) logCallf(
 	for k, v := range module.labels {
 		entry.Labels[k] = v
 	}
-	for k, v := range logger.labels {
-		entry.Labels[k] = v
-	}
+	maps.Copy(entry.Labels, logger.labels)
 	// Add extra labels if there's any given.
-	for k, v := range extraLabels {
-		entry.Labels[k] = v
-	}
+	maps.Copy(entry.Labels, extraLabels)
 	return module.write(context.Background(), entry)
 }
 

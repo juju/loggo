@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/juju/loggo/v2"
-	"github.com/juju/loggo/v2/attrs"
-	loggoslog "github.com/juju/loggo/v2/slog"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/loggo/v3/attrs"
+	loggoslog "github.com/juju/loggo/v3/slog"
 )
 
 var rootLogger = loggo.GetLogger("")

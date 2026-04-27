@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/juju/loggo/v2/attrs"
+	"github.com/juju/loggo/v3/attrs"
 )
 
 // DefaultFormatter returns the parameters separated by spaces except for

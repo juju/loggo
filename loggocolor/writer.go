@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/juju/ansiterm"
-	"github.com/juju/loggo/v2"
-	"github.com/juju/loggo/v2/attrs"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/loggo/v3/attrs"
 )
 
 var (
