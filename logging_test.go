@@ -4,7 +4,6 @@
 package loggo_test
 
 import (
-	stdcontext "context"
 	"testing"
 	"time"
 
@@ -35,10 +34,10 @@ func (s *LoggingSuite) SetUpTest(c *tc.C) {
 }
 
 func (s *LoggingSuite) TestLoggingStrings(c *tc.C) {
-	s.logger.Infof(stdcontext.Background(), "simple")
-	s.logger.Infof(stdcontext.Background(), "with args %d", 42)
-	s.logger.Infof(stdcontext.Background(), "working 100%")
-	s.logger.Infof(stdcontext.Background(), "missing %s")
+	_ = s.logger.Infof(c.Context(), "simple")
+	_ = s.logger.Infof(c.Context(), "with args %d", 42)
+	_ = s.logger.Infof(c.Context(), "working 100%")
+	_ = s.logger.Infof(c.Context(), "missing %s")
 
 	checkLogEntries(c, s.writer.Log(), []loggo.Entry{
 		{Level: loggo.INFO, Module: "test", Message: "simple", Labels: s.Labels},
@@ -66,16 +65,16 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *tc.C) {
 }
 
 func (s *LoggingSuite) TestLocationCapture(c *tc.C) {
-	s.helperInfof(c, "helper message")                                                      //tag helper-location
-	s.logger.Criticalf(stdcontext.Background(), "critical message")                         //tag critical-location
-	s.logger.Errorf(stdcontext.Background(), "error message")                               //tag error-location
-	s.logger.Warningf(stdcontext.Background(), "warning message")                           //tag warning-location
-	s.logger.Infof(stdcontext.Background(), "info message")                                 //tag info-location
-	s.logger.Debugf(stdcontext.Background(), "debug message")                               //tag debug-location
-	s.logger.Tracef(stdcontext.Background(), "trace message")                               //tag trace-location
-	s.logger.Logf(stdcontext.Background(), loggo.INFO, "logf msg")                          //tag logf-location
-	s.logger.LogCallf(stdcontext.Background(), 1, loggo.INFO, "logcallf msg")               //tag logcallf-location
-	s.logger.LogWithLabelsf(stdcontext.Background(), loggo.INFO, "logwithlabelsf msg", nil) //tag logwithlabelsf-location
+	s.helperInfof(c, "helper message")                                              //tag helper-location
+	_ = s.logger.Criticalf(c.Context(), "critical message")                         //tag critical-location
+	_ = s.logger.Errorf(c.Context(), "error message")                               //tag error-location
+	_ = s.logger.Warningf(c.Context(), "warning message")                           //tag warning-location
+	_ = s.logger.Infof(c.Context(), "info message")                                 //tag info-location
+	_ = s.logger.Debugf(c.Context(), "debug message")                               //tag debug-location
+	_ = s.logger.Tracef(c.Context(), "trace message")                               //tag trace-location
+	_ = s.logger.Logf(c.Context(), loggo.INFO, "logf msg")                          //tag logf-location
+	_ = s.logger.LogCallf(c.Context(), 1, loggo.INFO, "logcallf msg")               //tag logcallf-location
+	_ = s.logger.LogWithLabelsf(c.Context(), loggo.INFO, "logwithlabelsf msg", nil) //tag logwithlabelsf-location
 
 	log := s.writer.Log()
 	tags := []string{
@@ -98,16 +97,16 @@ func (s *LoggingSuite) TestLocationCapture(c *tc.C) {
 
 func (s *LoggingSuite) helperInfof(c *tc.C, format string, args ...any) {
 	s.logger.Helper()
-	s.logger.Infof(stdcontext.Background(), format, args...)
+	_ = s.logger.Infof(c.Context(), format, args...)
 }
 
 func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *tc.C) {
-	s.logger.Logf(stdcontext.Background(), loggo.UNSPECIFIED, "message")
+	_ = s.logger.Logf(c.Context(), loggo.UNSPECIFIED, "message")
 	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
-	s.logger.Logf(stdcontext.Background(), loggo.Level(42), "message")
+	_ = s.logger.Logf(c.Context(), loggo.Level(42), "message")
 	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
-	s.logger.Logf(stdcontext.Background(), loggo.CRITICAL+loggo.Level(1), "message")
+	_ = s.logger.Logf(c.Context(), loggo.CRITICAL+loggo.Level(1), "message")
 	c.Assert(s.writer.Log(), tc.HasLen, 0)
 }

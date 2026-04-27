@@ -26,7 +26,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *tc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(context.Background(), Entry{
+	_ = writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",
@@ -47,7 +47,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *tc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(context.Background(), Entry{
+	_ = writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",

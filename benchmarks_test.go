@@ -4,7 +4,6 @@
 package loggo_test
 
 import (
-	"context"
 	"io"
 	"os"
 	"testing"
@@ -20,7 +19,7 @@ func BenchmarkLoggingNoWriters(b *testing.B) {
 	// No writers
 	_, _ = loggo.RemoveWriter("test")
 	for i := 0; i < b.N; i++ {
-		_ = logger.Warningf(context.Background(), "just a simple warning for %d", i)
+		_ = logger.Warningf(b.Context(), "just a simple warning for %d", i)
 	}
 }
 
@@ -31,7 +30,7 @@ func BenchmarkLoggingNoWritersNoFormat(b *testing.B) {
 	// No writers
 	_, _ = loggo.RemoveWriter("test")
 	for i := 0; i < b.N; i++ {
-		_ = logger.Warningf(context.Background(), "just a simple warning")
+		_ = logger.Warningf(b.Context(), "just a simple warning")
 	}
 }
 
@@ -40,7 +39,7 @@ func BenchmarkLoggingTestWriters(b *testing.B) {
 	logger, writer := setupTest(c)
 
 	for i := 0; i < b.N; i++ {
-		_ = logger.Warningf(context.Background(), "just a simple warning for %d", i)
+		_ = logger.Warningf(b.Context(), "just a simple warning for %d", i)
 	}
 	c.Assert(writer.Log(), tc.HasLen, b.N)
 }
@@ -53,7 +52,7 @@ func BenchmarkLoggingDiskWriter(b *testing.B) {
 	defer func() { _ = logFile.Close() }()
 	msg := "just a simple warning for %d"
 	for i := 0; i < b.N; i++ {
-		_ = logger.Warningf(context.Background(), msg, i)
+		_ = logger.Warningf(b.Context(), msg, i)
 	}
 	offset, err := logFile.Seek(0, io.SeekCurrent)
 	c.Assert(err, tc.IsNil)
@@ -76,7 +75,7 @@ func BenchmarkLoggingDiskWriterNoMessages(b *testing.B) {
 
 	msg := "just a simple warning for %d"
 	for i := 0; i < b.N; i++ {
-		_ = logger.Debugf(context.Background(), msg, i)
+		_ = logger.Debugf(b.Context(), msg, i)
 	}
 	offset, err := logFile.Seek(0, io.SeekCurrent)
 	c.Assert(err, tc.IsNil)
@@ -95,7 +94,7 @@ func BenchmarkLoggingDiskWriterNoMessagesLogLevel(b *testing.B) {
 
 	msg := "just a simple warning for %d"
 	for i := 0; i < b.N; i++ {
-		_ = logger.Debugf(context.Background(), msg, i)
+		_ = logger.Debugf(b.Context(), msg, i)
 	}
 	offset, err := logFile.Seek(0, io.SeekCurrent)
 	c.Assert(err, tc.IsNil)

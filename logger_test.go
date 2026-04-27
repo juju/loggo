@@ -4,7 +4,6 @@
 package loggo_test
 
 import (
-	stdcontext "context"
 	"testing"
 
 	"github.com/juju/loggo/v2"
@@ -44,9 +43,9 @@ func (s *LoggerSuite) TestWithLabels(c *tc.C) {
 		ChildWithTags("withTags", "tag1", "tag2").
 		WithLabels(loggo.Labels{"hello": "world"})
 
-	logger.Logf(stdcontext.Background(), loggo.INFO, "without labels")
-	loggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with labels")
-	loggerWithTagsAndLabels.Logf(stdcontext.Background(), loggo.INFO, "with tags and labels")
+	_ = logger.Logf(c.Context(), loggo.INFO, "without labels")
+	_ = loggerWithLabels.Logf(c.Context(), loggo.INFO, "with labels")
+	_ = loggerWithTagsAndLabels.Logf(c.Context(), loggo.INFO, "with tags and labels")
 
 	logs := writer.Log()
 	c.Assert(logs, tc.HasLen, 3)
@@ -73,8 +72,8 @@ func (s *LoggerSuite) TestNonInheritedLabels(c *tc.C) {
 	inheritedLoggerWithLabels := logger.
 		ChildWithLabels("inherited", loggo.Labels{"foo": "bar"})
 
-	logger.Logf(stdcontext.Background(), loggo.INFO, "with labels")
-	inheritedLoggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with inherited labels")
+	_ = logger.Logf(c.Context(), loggo.INFO, "with labels")
+	_ = inheritedLoggerWithLabels.Logf(c.Context(), loggo.INFO, "with inherited labels")
 
 	logs := writer.Log()
 	c.Assert(logs, tc.HasLen, 2)
@@ -102,8 +101,8 @@ func (s *LoggerSuite) TestNonInheritedWithInheritedLabels(c *tc.C) {
 	scopedLoggerWithLabels := inheritedLoggerWithLabels.
 		WithLabels(loggo.Labels{"hello": "world"})
 
-	inheritedLoggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with inherited labels")
-	scopedLoggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with scoped labels")
+	_ = inheritedLoggerWithLabels.Logf(c.Context(), loggo.INFO, "with inherited labels")
+	_ = scopedLoggerWithLabels.Logf(c.Context(), loggo.INFO, "with scoped labels")
 
 	logs := writer.Log()
 	c.Assert(logs, tc.HasLen, 2)
@@ -139,10 +138,10 @@ func (s *LoggerSuite) TestInheritedLabels(c *tc.C) {
 		ChildWithLabels("nested-labels", loggo.Labels{"hello": "world"}).
 		ChildWithTags("nested-tag", "tag1", "tag2")
 
-	logger.Logf(stdcontext.Background(), loggo.INFO, "without labels")
-	nestedLoggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with nested labels")
-	deepNestedLoggerWithLabels.Logf(stdcontext.Background(), loggo.INFO, "with deep nested labels")
-	loggerWithTagsAndLabels.Logf(stdcontext.Background(), loggo.INFO, "with tags and labels")
+	_ = logger.Logf(c.Context(), loggo.INFO, "without labels")
+	_ = nestedLoggerWithLabels.Logf(c.Context(), loggo.INFO, "with nested labels")
+	_ = deepNestedLoggerWithLabels.Logf(c.Context(), loggo.INFO, "with deep nested labels")
+	_ = loggerWithTagsAndLabels.Logf(c.Context(), loggo.INFO, "with tags and labels")
 
 	logs := writer.Log()
 	c.Assert(logs, tc.HasLen, 4)
@@ -174,8 +173,8 @@ func (s *LoggerSuite) TestLogWithStaticAndDynamicLabels(c *tc.C) {
 	logger := context.GetLogger("testing")
 	loggerWithLabels := logger.WithLabels(loggo.Labels{"foo": "bar"})
 
-	loggerWithLabels.LogWithLabelsf(stdcontext.Background(), loggo.INFO, "no extra labels", nil)
-	loggerWithLabels.LogWithLabelsf(stdcontext.Background(), loggo.INFO, "with extra labels", map[string]string{
+	_ = loggerWithLabels.LogWithLabelsf(c.Context(), loggo.INFO, "no extra labels", nil)
+	_ = loggerWithLabels.LogWithLabelsf(c.Context(), loggo.INFO, "with extra labels", map[string]string{
 		"domain": "status",
 		"kind":   "machine",
 		"id":     "0",
@@ -199,8 +198,8 @@ func (s *LoggerSuite) TestLogWithExtraLabels(c *tc.C) {
 
 	logger := context.GetLogger("testing")
 
-	logger.LogWithLabelsf(stdcontext.Background(), loggo.INFO, "no extra labels", nil)
-	logger.LogWithLabelsf(stdcontext.Background(), loggo.INFO, "with extra labels", map[string]string{
+	_ = logger.LogWithLabelsf(c.Context(), loggo.INFO, "no extra labels", nil)
+	_ = logger.LogWithLabelsf(c.Context(), loggo.INFO, "with extra labels", map[string]string{
 		"domain": "status",
 		"kind":   "machine",
 		"id":     "0",
