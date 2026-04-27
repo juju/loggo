@@ -4,6 +4,7 @@
 package loggo
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -176,12 +177,12 @@ func (logger Logger) SetLogLevel(level Level) {
 // the effective log level of the logger.
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
-func (logger Logger) Logf(level Level, message string, args ...interface{}) {
-	logger.logf(level, message, args...)
+func (logger Logger) Logf(ctx context.Context, level Level, message string, args ...interface{}) error {
+	return logger.logf(ctx, level, message, args...)
 }
 
-func (logger Logger) logf(level Level, message string, args ...interface{}) {
-	logger.logCallf(logger.callDepth, level, message, nil, args...)
+func (logger Logger) logf(ctx context.Context, level Level, message string, args ...interface{}) error {
+	return logger.logCallf(ctx, logger.callDepth, level, message, nil, args...)
 }
 
 // LogWithlabelsf logs a printf-formatted message at the given level with extra
@@ -189,8 +190,14 @@ func (logger Logger) logf(level Level, message string, args ...interface{}) {
 // A message will be discarded if level is less than the the effective log level
 // of the logger. Note that the writers may also filter out messages that are
 // less than their registered minimum severity level.
-func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map[string]string, args ...interface{}) {
-	logger.logCallf(logger.callDepth-1, level, message, extraLabels, args...)
+func (logger Logger) LogWithLabelsf(
+	ctx context.Context,
+	level Level,
+	message string,
+	extraLabels map[string]string,
+	args ...interface{},
+) error {
+	return logger.logCallf(ctx, logger.callDepth-1, level, message, extraLabels, args...)
 }
 
 // LogCallf logs a printf-formatted message at the given level.
@@ -200,16 +207,29 @@ func (logger Logger) LogWithLabelsf(level Level, message string, extraLabels map
 // the effective log level of the logger.
 // Note that the writers may also filter out messages that
 // are less than their registered minimum severity level.
-func (logger Logger) LogCallf(calldepth int, level Level, message string, args ...interface{}) {
-	logger.logCallf(calldepth, level, message, nil, args...)
+func (logger Logger) LogCallf(
+	ctx context.Context,
+	calldepth int,
+	level Level,
+	message string,
+	args ...interface{},
+) error {
+	return logger.logCallf(ctx, calldepth, level, message, nil, args...)
 }
 
 // logCallf is a private method for logging a printf-formatted message at the
 // given level. Used by LogWithLabelsf and LogCallf.
-func (logger Logger) logCallf(calldepth int, level Level, message string, extraLabels map[string]string, args ...interface{}) {
+func (logger Logger) logCallf(
+	ctx context.Context,
+	calldepth int,
+	level Level,
+	message string,
+	extraLabels map[string]string,
+	args ...interface{},
+) error {
 	module := logger.getModule()
 	if !module.willWrite(level) {
-		return
+		return nil
 	}
 	// Gather time, and filename, line number.
 	now := time.Now() // get this early.
@@ -259,43 +279,37 @@ func (logger Logger) logCallf(calldepth int, level Level, message string, extraL
 	for k, v := range extraLabels {
 		entry.Labels[k] = v
 	}
-	module.write(entry)
+	return module.write(context.Background(), entry)
 }
 
 // Criticalf logs the printf-formatted message at critical level.
-func (logger Logger) Criticalf(message string, args ...interface{}) {
-	logger.logf(CRITICAL, message, args...)
+func (logger Logger) Criticalf(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, CRITICAL, message, args...)
 }
 
 // Errorf logs the printf-formatted message at error level.
-func (logger Logger) Errorf(message string, args ...interface{}) {
-	logger.logf(ERROR, message, args...)
+func (logger Logger) Errorf(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, ERROR, message, args...)
 }
 
 // Warningf logs the printf-formatted message at warning level.
-func (logger Logger) Warningf(message string, args ...interface{}) {
-	logger.logf(WARNING, message, args...)
+func (logger Logger) Warningf(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, WARNING, message, args...)
 }
 
 // Infof logs the printf-formatted message at info level.
-func (logger Logger) Infof(message string, args ...interface{}) {
-	logger.logf(INFO, message, args...)
-}
-
-// InfoWithLabelsf logs the printf-formatted message at info level with extra
-// labels.
-func (logger Logger) InfoWithLabelsf(message string, extraLabels map[string]string, args ...interface{}) {
-	logger.logCallf(logger.callDepth, INFO, message, extraLabels, args...)
+func (logger Logger) Infof(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, INFO, message, args...)
 }
 
 // Debugf logs the printf-formatted message at debug level.
-func (logger Logger) Debugf(message string, args ...interface{}) {
-	logger.logf(DEBUG, message, args...)
+func (logger Logger) Debugf(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, DEBUG, message, args...)
 }
 
 // Tracef logs the printf-formatted message at trace level.
-func (logger Logger) Tracef(message string, args ...interface{}) {
-	logger.logf(TRACE, message, args...)
+func (logger Logger) Tracef(ctx context.Context, message string, args ...interface{}) error {
+	return logger.logf(ctx, TRACE, message, args...)
 }
 
 // IsLevelEnabled returns whether debugging is enabled

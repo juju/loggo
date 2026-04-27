@@ -19,7 +19,7 @@ func NewSlogWriter(writer slog.Handler) loggo.Writer {
 }
 
 // Write implements Writer.
-func (w *slogWriter) Write(entry loggo.Entry) {
+func (w *slogWriter) Write(ctx context.Context, entry loggo.Entry) error {
 	record := slog.NewRecord(
 		entry.Timestamp,
 		Level(entry.Level),
@@ -58,7 +58,7 @@ func (w *slogWriter) Write(entry loggo.Entry) {
 		}
 	}
 
-	_ = w.writer.Handle(context.Background(), record)
+	return w.writer.Handle(ctx, record)
 }
 
 // Level function allows levels to be mapped to slog levels. Although,

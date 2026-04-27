@@ -4,6 +4,7 @@
 package loggo
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -214,12 +215,15 @@ func (c *Context) ResetLoggerLevels() {
 	c.modulesTagConfig = make(map[string]Level)
 }
 
-func (c *Context) write(entry Entry) {
+func (c *Context) write(ctx context.Context, entry Entry) error {
 	c.writeMutex.Lock()
 	defer c.writeMutex.Unlock()
 	for _, writer := range c.getWriters() {
-		writer.Write(entry)
+		if err := writer.Write(ctx, entry); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (c *Context) getWriters() []Writer {

@@ -4,6 +4,8 @@
 package loggo_test
 
 import (
+	"context"
+
 	"github.com/juju/loggo/v2"
 
 	gc "gopkg.in/check.v1"
@@ -50,12 +52,12 @@ func (*ContextSuite) TestNewContextRootLevel(c *gc.C) {
 }
 
 func logAllSeverities(logger loggo.Logger) {
-	logger.Criticalf("something critical")
-	logger.Errorf("an error")
-	logger.Warningf("a warning message")
-	logger.Infof("an info message")
-	logger.Debugf("a debug message")
-	logger.Tracef("a trace message")
+	logger.Criticalf(context.Background(), "something critical")
+	logger.Errorf(context.Background(), "an error")
+	logger.Warningf(context.Background(), "a warning message")
+	logger.Infof(context.Background(), "an info message")
+	logger.Debugf(context.Background(), "a debug message")
+	logger.Tracef(context.Background(), "a trace message")
 }
 
 func checkLogEntry(c *gc.C, entry, expected loggo.Entry) {

@@ -1,6 +1,7 @@
 package loggocolor
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -47,37 +48,63 @@ func NewColorWriter(writer io.Writer) loggo.Writer {
 }
 
 // Write implements Writer.
-func (w *colorWriter) Write(entry loggo.Entry) {
+func (w *colorWriter) Write(_ context.Context, entry loggo.Entry) error {
 	ts := entry.Timestamp.Format(loggo.TimeFormat)
 	// Just get the basename from the filename
 	filename := filepath.Base(entry.Filename)
 
-	fmt.Fprintf(w.writer, "%s ", ts)
+	if _, err := fmt.Fprintf(w.writer, "%s ", ts); err != nil {
+		return err
+	}
+
 	SeverityColor[entry.Level].Fprintf(w.writer, entry.Level.Short())
-	fmt.Fprintf(w.writer, " %s ", entry.Module)
+	if _, err := fmt.Fprintf(w.writer, " %s ", entry.Module); err != nil {
+		return err
+	}
 	LocationColor.Fprintf(w.writer, "%s:%d ", filename, entry.Line)
-	fmt.Fprintln(w.writer, entry.Message)
+	if _, err := fmt.Fprintln(w.writer, entry.Message); err != nil {
+		return err
+	}
 
 	for _, attr := range entry.Attrs {
 		switch a := attr.(type) {
 		case attrs.AttrValue[string]:
-			fmt.Fprintf(w.writer, "  %s=%s\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%s\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[int]:
-			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[int64]:
-			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[uint64]:
-			fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%d\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[float64]:
-			fmt.Fprintf(w.writer, "  %s=%f\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%f\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[bool]:
-			fmt.Fprintf(w.writer, "  %s=%t\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%t\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[time.Time]:
-			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[time.Duration]:
-			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		case attrs.AttrValue[any]:
-			fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value())
+			if _, err := fmt.Fprintf(w.writer, "  %s=%v\n", a.Key(), a.Value()); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

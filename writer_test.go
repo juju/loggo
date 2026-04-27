@@ -5,6 +5,7 @@ package loggo
 
 import (
 	"bytes"
+	"context"
 	"time"
 
 	gc "gopkg.in/check.v1"
@@ -22,7 +23,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(Entry{
+	writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",
@@ -43,7 +44,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *gc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(Entry{
+	writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",

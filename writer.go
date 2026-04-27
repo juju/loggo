@@ -4,6 +4,7 @@
 package loggo
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -20,7 +21,7 @@ type Writer interface {
 	// code that is generating the log message; the time stamp holds the time
 	// the log message was generated, and message holds the log message
 	// itself.
-	Write(entry Entry)
+	Write(ctx context.Context, entry Entry) error
 }
 
 // NewMinLevelWriter returns a Writer that will only pass on the Write calls
@@ -39,11 +40,11 @@ type minLevelWriter struct {
 }
 
 // Write writes the log record.
-func (w minLevelWriter) Write(entry Entry) {
+func (w minLevelWriter) Write(ctx context.Context, entry Entry) error {
 	if entry.Level < w.level {
-		return
+		return nil
 	}
-	w.writer.Write(entry)
+	return w.writer.Write(ctx, entry)
 }
 
 type simpleWriter struct {
@@ -57,12 +58,13 @@ func NewSimpleWriter(writer io.Writer, formatter func(entry Entry) string) Write
 	if formatter == nil {
 		formatter = DefaultFormatter
 	}
-	return &simpleWriter{writer, formatter}
+	return &simpleWriter{writer: writer, formatter: formatter}
 }
 
-func (simple *simpleWriter) Write(entry Entry) {
+func (simple *simpleWriter) Write(ctx context.Context, entry Entry) error {
 	logLine := simple.formatter(entry)
-	fmt.Fprintln(simple.writer, logLine)
+	_, err := fmt.Fprintln(simple.writer, logLine)
+	return err
 }
 
 func defaultWriter() Writer {

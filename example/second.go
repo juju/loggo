@@ -1,30 +1,32 @@
 package main
 
 import (
+	"context"
+
 	"github.com/juju/loggo/v2"
 )
 
 var second = loggo.GetLogger("second")
 
 func SecondCritical(message string) {
-	second.Criticalf(message)
+	_ = second.Criticalf(context.Background(), message)
 }
 
 func SecondError(message string) {
-	second.Errorf(message)
+	_ = second.Errorf(context.Background(), message)
 }
 
 func SecondWarning(message string) {
-	second.Warningf(message)
+	_ = second.Warningf(context.Background(), message)
 }
 
 func SecondInfo(message string) {
-	second.Infof(message)
+	_ = second.Infof(context.Background(), message)
 }
 
 func SecondDebug(message string) {
-	second.Debugf(message)
+	_ = second.Debugf(context.Background(), message)
 }
 func SecondTrace(message string) {
-	second.Tracef(message)
+	_ = second.Tracef(context.Background(), message)
 }

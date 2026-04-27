@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -44,7 +45,7 @@ func main() {
 
 	fmt.Println("")
 
-	rootLogger.Infof("Start of test.", attrs.String("foo", "bar"))
+	rootLogger.Infof(context.Background(), "Start of test.", attrs.String("foo", "bar"))
 
 	FirstCritical("first critical")
 	FirstError("first error")

@@ -3,6 +3,8 @@
 
 package loggo
 
+import "context"
+
 // Do not change rootName: modules.resolve() will misbehave if it isn't "".
 const (
 	rootString = "<root>"
@@ -57,7 +59,7 @@ func (m *module) setLevel(level Level) {
 	m.level.set(level)
 }
 
-func (m *module) write(entry Entry) {
+func (m *module) write(ctx context.Context, entry Entry) error {
 	entry.Module = m.name
-	m.context.write(entry)
+	return m.context.write(ctx, entry)
 }
