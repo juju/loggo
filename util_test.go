@@ -5,12 +5,11 @@ package loggo_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/juju/loggo/v2"
-
-	gc "gopkg.in/check.v1"
+	"github.com/juju/tc"
 )
 
 func init() {
@@ -18,11 +17,11 @@ func init() {
 	setLocationsForTags("writer_test.go")
 }
 
-func assertLocation(c *gc.C, msg loggo.Entry, tag string) {
+func assertLocation(c *tc.C, msg loggo.Entry, tag string) {
 	loc := location(tag)
-	c.Check(fmt.Sprintf("%s:%d", msg.Filename, msg.Line), gc.Equals,
+	c.Check(fmt.Sprintf("%s:%d", msg.Filename, msg.Line), tc.Equals,
 		fmt.Sprintf("%s:%d", loc.file, loc.line),
-		gc.Commentf("tag=%s", tag))
+		tc.Commentf("tag=%s", tag))
 }
 
 // All this location stuff is to avoid having hard coded line numbers
@@ -52,7 +51,7 @@ func (loc Location) String() string {
 var tagToLocation = make(map[string]Location)
 
 func setLocationsForTags(filename string) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}

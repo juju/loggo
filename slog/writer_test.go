@@ -12,6 +12,7 @@ import (
 	"github.com/juju/loggo/v2"
 	"github.com/juju/loggo/v2/attrs"
 )
+
 // mockHandler captures records written via Handle for inspection.
 type mockHandler struct {
 	records []slog.Record
@@ -47,7 +48,7 @@ func TestWriteBasicEntry(t *testing.T) {
 		Message:   "hello world",
 	}
 
-	w.Write(context.Background(), entry)
+	_ = w.Write(context.Background(), entry)
 
 	if len(handler.records) != 1 {
 		t.Fatalf("expected 1 record, got %d", len(handler.records))
@@ -91,7 +92,7 @@ func TestWriteWithLabels(t *testing.T) {
 		Labels:    loggo.Labels{"env": "prod", "version": "1.0"},
 	}
 
-	w.Write(context.Background(), entry)
+	_ = w.Write(context.Background(), entry)
 
 	if len(handler.records) != 1 {
 		t.Fatalf("expected 1 record, got %d", len(handler.records))
@@ -133,7 +134,7 @@ func TestWriteWithAllAttrTypes(t *testing.T) {
 		},
 	}
 
-	w.Write(context.Background(), entry)
+	_ = w.Write(context.Background(), entry)
 
 	if len(handler.records) != 1 {
 		t.Fatalf("expected 1 record, got %d", len(handler.records))
@@ -261,7 +262,7 @@ func TestWriteWithNoAttrsOrLabels(t *testing.T) {
 		Message:   "simple error",
 	}
 
-	w.Write(context.Background(), entry)
+	_ = w.Write(context.Background(), entry)
 
 	if len(handler.records) != 1 {
 		t.Fatalf("expected 1 record, got %d", len(handler.records))

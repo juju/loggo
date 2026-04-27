@@ -7,22 +7,22 @@ import (
 	"fmt"
 	"time"
 
-	gc "gopkg.in/check.v1"
+	"github.com/juju/tc"
 )
 
-func Between(start, end time.Time) gc.Checker {
+func Between(start, end time.Time) tc.Checker {
 	if end.Before(start) {
-		return &betweenChecker{end, start}
+		return &betweenChecker{start: end, end: start}
 	}
-	return &betweenChecker{start, end}
+	return &betweenChecker{start: start, end: end}
 }
 
 type betweenChecker struct {
 	start, end time.Time
 }
 
-func (checker *betweenChecker) Info() *gc.CheckerInfo {
-	info := gc.CheckerInfo{
+func (checker *betweenChecker) Info() *tc.CheckerInfo {
+	info := tc.CheckerInfo{
 		Name:   "Between",
 		Params: []string{"obtained"},
 	}

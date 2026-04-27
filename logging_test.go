@@ -5,11 +5,11 @@ package loggo_test
 
 import (
 	stdcontext "context"
+	"testing"
 	"time"
 
-	gc "gopkg.in/check.v1"
-
 	"github.com/juju/loggo/v2"
+	"github.com/juju/tc"
 )
 
 type LoggingSuite struct {
@@ -21,18 +21,20 @@ type LoggingSuite struct {
 	Labels map[string]string
 }
 
-var _ = gc.Suite(&LoggingSuite{})
-var _ = gc.Suite(&LoggingSuite{Labels: loggo.Labels{"logger-tags": "ONE,TWO"}})
+func TestLoggingSuite(t *testing.T) {
+	tc.Run(t, &LoggingSuite{})
+	tc.Run(t, &LoggingSuite{Labels: loggo.Labels{"logger-tags": "ONE,TWO"}})
+}
 
-func (s *LoggingSuite) SetUpTest(c *gc.C) {
+func (s *LoggingSuite) SetUpTest(c *tc.C) {
 	s.writer = &writer{}
 	s.context = loggo.NewContext(loggo.TRACE)
 	err := s.context.AddWriter("test", s.writer)
-	c.Assert(err, gc.IsNil)
+	c.Assert(err, tc.IsNil)
 	s.logger = s.context.GetLogger("test", "ONE,TWO")
 }
 
-func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
+func (s *LoggingSuite) TestLoggingStrings(c *tc.C) {
 	s.logger.Infof(stdcontext.Background(), "simple")
 	s.logger.Infof(stdcontext.Background(), "with args %d", 42)
 	s.logger.Infof(stdcontext.Background(), "working 100%")
@@ -46,7 +48,7 @@ func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
 	})
 }
 
-func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
+func (s *LoggingSuite) TestLoggingLimitWarning(c *tc.C) {
 	s.logger.SetLogLevel(loggo.WARNING)
 	start := time.Now()
 	logAllSeverities(s.logger)
@@ -63,7 +65,7 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
 	}
 }
 
-func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
+func (s *LoggingSuite) TestLocationCapture(c *tc.C) {
 	s.helperInfof(c, "helper message")                                                      //tag helper-location
 	s.logger.Criticalf(stdcontext.Background(), "critical message")                         //tag critical-location
 	s.logger.Errorf(stdcontext.Background(), "error message")                               //tag error-location
@@ -88,24 +90,24 @@ func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
 		"logcallf-location",
 		"logwithlabelsf-location",
 	}
-	c.Assert(log, gc.HasLen, len(tags))
+	c.Assert(log, tc.HasLen, len(tags))
 	for x := range tags {
 		assertLocation(c, log[x], tags[x])
 	}
 }
 
-func (s *LoggingSuite) helperInfof(c *gc.C, format string, args ...any) {
+func (s *LoggingSuite) helperInfof(c *tc.C, format string, args ...any) {
 	s.logger.Helper()
 	s.logger.Infof(stdcontext.Background(), format, args...)
 }
 
-func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
+func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *tc.C) {
 	s.logger.Logf(stdcontext.Background(), loggo.UNSPECIFIED, "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
 	s.logger.Logf(stdcontext.Background(), loggo.Level(42), "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
 	s.logger.Logf(stdcontext.Background(), loggo.CRITICAL+loggo.Level(1), "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 }

@@ -57,7 +57,7 @@ func (w *colorWriter) Write(_ context.Context, entry loggo.Entry) error {
 		return err
 	}
 
-	SeverityColor[entry.Level].Fprintf(w.writer, entry.Level.Short())
+	SeverityColor[entry.Level].Fprintf(w.writer, "%s", entry.Level.Short())
 	if _, err := fmt.Fprintf(w.writer, " %s ", entry.Module); err != nil {
 		return err
 	}

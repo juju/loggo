@@ -4,90 +4,93 @@
 package loggo_test
 
 import (
-	gc "gopkg.in/check.v1"
+	"testing"
 
 	"github.com/juju/loggo/v2"
+	"github.com/juju/tc"
 )
 
 type GlobalSuite struct{}
 
-var _ = gc.Suite(&GlobalSuite{})
+func TestGlobalSuite(t *testing.T) {
+	tc.Run(t, &GlobalSuite{})
+}
 
-func (*GlobalSuite) SetUpTest(c *gc.C) {
+func (*GlobalSuite) SetUpTest(c *tc.C) {
 	loggo.ResetDefaultContext()
 }
 
-func (*GlobalSuite) TestRootLogger(c *gc.C) {
+func (*GlobalSuite) TestRootLogger(c *tc.C) {
 	var root loggo.Logger
 
 	got := loggo.GetLogger("")
 
-	c.Check(got.Name(), gc.Equals, root.Name())
-	c.Check(got.LogLevel(), gc.Equals, root.LogLevel())
+	c.Check(got.Name(), tc.Equals, root.Name())
+	c.Check(got.LogLevel(), tc.Equals, root.LogLevel())
 }
 
-func (*GlobalSuite) TestModuleName(c *gc.C) {
+func (*GlobalSuite) TestModuleName(c *tc.C) {
 	logger := loggo.GetLogger("loggo.testing")
-	c.Check(logger.Name(), gc.Equals, "loggo.testing")
+	c.Check(logger.Name(), tc.Equals, "loggo.testing")
 }
 
-func (*GlobalSuite) TestLevel(c *gc.C) {
+func (*GlobalSuite) TestLevel(c *tc.C) {
 	logger := loggo.GetLogger("testing")
 	level := logger.LogLevel()
-	c.Check(level, gc.Equals, loggo.UNSPECIFIED)
+	c.Check(level, tc.Equals, loggo.UNSPECIFIED)
 }
 
-func (*GlobalSuite) TestEffectiveLevel(c *gc.C) {
+func (*GlobalSuite) TestEffectiveLevel(c *tc.C) {
 	logger := loggo.GetLogger("testing")
 	level := logger.EffectiveLogLevel()
-	c.Check(level, gc.Equals, loggo.WARNING)
+	c.Check(level, tc.Equals, loggo.WARNING)
 }
 
-func (*GlobalSuite) TestLevelsSharedForSameModule(c *gc.C) {
+func (*GlobalSuite) TestLevelsSharedForSameModule(c *tc.C) {
 	logger1 := loggo.GetLogger("testing.module")
 	logger2 := loggo.GetLogger("testing.module")
 
 	logger1.SetLogLevel(loggo.INFO)
-	c.Assert(logger1.IsInfoEnabled(), gc.Equals, true)
-	c.Assert(logger2.IsInfoEnabled(), gc.Equals, true)
+	c.Assert(logger1.IsInfoEnabled(), tc.Equals, true)
+	c.Assert(logger2.IsInfoEnabled(), tc.Equals, true)
 }
 
-func (*GlobalSuite) TestModuleLowered(c *gc.C) {
+func (*GlobalSuite) TestModuleLowered(c *tc.C) {
 	logger1 := loggo.GetLogger("TESTING.MODULE")
 	logger2 := loggo.GetLogger("Testing")
 
-	c.Assert(logger1.Name(), gc.Equals, "testing.module")
-	c.Assert(logger2.Name(), gc.Equals, "testing")
+	c.Assert(logger1.Name(), tc.Equals, "testing.module")
+	c.Assert(logger2.Name(), tc.Equals, "testing")
 }
 
-func (s *GlobalSuite) TestConfigureLoggers(c *gc.C) {
+func (s *GlobalSuite) TestConfigureLoggers(c *tc.C) {
 	err := loggo.ConfigureLoggers("testing.module=debug")
-	c.Assert(err, gc.IsNil)
+	c.Assert(err, tc.IsNil)
 	expected := "<root>=WARNING;testing.module=DEBUG"
-	c.Assert(loggo.DefaultContext().Config().String(), gc.Equals, expected)
-	c.Assert(loggo.LoggerInfo(), gc.Equals, expected)
+	c.Assert(loggo.DefaultContext().Config().String(), tc.Equals, expected)
+	c.Assert(loggo.LoggerInfo(), tc.Equals, expected)
 }
 
-func (*GlobalSuite) TestRegisterWriterExistingName(c *gc.C) {
+func (*GlobalSuite) TestRegisterWriterExistingName(c *tc.C) {
 	err := loggo.RegisterWriter("default", &writer{})
-	c.Assert(err, gc.ErrorMatches, `context already has a writer named "default"`)
+	c.Assert(err, tc.ErrorMatches, `context already has a writer named "default"`)
 }
 
-func (*GlobalSuite) TestReplaceDefaultWriter(c *gc.C) {
+func (*GlobalSuite) TestReplaceDefaultWriter(c *tc.C) {
 	oldWriter, err := loggo.ReplaceDefaultWriter(&writer{})
-	c.Assert(oldWriter, gc.NotNil)
-	c.Assert(err, gc.IsNil)
-	c.Assert(loggo.DefaultContext().WriterNames(), gc.DeepEquals, []string{"default"})
+	c.Assert(oldWriter, tc.NotNil)
+	c.Assert(err, tc.IsNil)
+	c.Assert(loggo.DefaultContext().WriterNames(), tc.DeepEquals, []string{"default"})
 }
 
-func (*GlobalSuite) TestRemoveWriter(c *gc.C) {
+func (*GlobalSuite) TestRemoveWriter(c *tc.C) {
 	oldWriter, err := loggo.RemoveWriter("default")
-	c.Assert(oldWriter, gc.NotNil)
-	c.Assert(err, gc.IsNil)
-	c.Assert(loggo.DefaultContext().WriterNames(), gc.HasLen, 0)
+	c.Assert(oldWriter, tc.NotNil)
+	c.Assert(err, tc.IsNil)
+	c.Assert(loggo.DefaultContext().WriterNames(), tc.HasLen, 0)
 }
 
-func (s *GlobalSuite) TestGetLoggerWithTags(c *gc.C) {
+func (s *GlobalSuite) TestGetLoggerWithTags(c *tc.C) {
 	logger := loggo.GetLoggerWithTags("parent", "labela", "labelb")
-	c.Check(logger.Tags(), gc.DeepEquals, []string{"labela", "labelb"})
+	c.Check(logger.Tags(), tc.DeepEquals, []string{"labela", "labelb"})
 }

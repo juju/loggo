@@ -35,7 +35,7 @@ func main() {
 			handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 				Level: loggoslog.DefaultLevel(loggo.DefaultContext().Config()),
 			})
-			loggo.ReplaceDefaultWriter(loggoslog.NewSlogWriter(handler))
+			_, _ = loggo.ReplaceDefaultWriter(loggoslog.NewSlogWriter(handler))
 
 			fmt.Println("Using log/slog writer:")
 		} else {
@@ -45,7 +45,7 @@ func main() {
 
 	fmt.Println("")
 
-	rootLogger.Infof(context.Background(), "Start of test.", attrs.String("foo", "bar"))
+	_ = rootLogger.Infof(context.Background(), "Start of test.", attrs.String("foo", "bar"))
 
 	FirstCritical("first critical")
 	FirstError("first error")
