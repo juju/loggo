@@ -5,8 +5,10 @@ package loggo_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/juju/loggo/v3"
+	"github.com/juju/loggo/v3/attrs"
 	"github.com/juju/tc"
 )
 
@@ -396,4 +398,134 @@ func (s *LoggerSuite) TestRootSameContext(c *tc.C) {
 	c.Check(root.Name(), tc.Equals, "<root>")
 	c.Check(root.Child("a.b.c"), tc.DeepEquals, logger)
 	c.Check(root.Child("a.b.c"), tc.Not(tc.DeepEquals), loggo.GetLogger("a.b.c"))
+}
+
+func (s *LoggerSuite) TestAttrsIgnoredForMessageFormatting(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// Attrs should not be consumed as format arguments.
+	_ = logger.Logf(c.Context(), loggo.INFO, "hello world", attrs.String("key", "value"))
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "hello world")
+	c.Assert(logs[0].Attrs, tc.HasLen, 1)
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[string]).Key(), tc.Equals, "key")
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[string]).Value(), tc.Equals, "value")
+}
+
+func (s *LoggerSuite) TestAttrsIgnoredWithFormatArgs(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// Format args should be used for formatting, attrs should be separated.
+	_ = logger.Logf(c.Context(), loggo.INFO, "count: %d", 42, attrs.Int("extra", 7))
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "count: 42")
+	c.Assert(logs[0].Attrs, tc.HasLen, 1)
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[int]).Key(), tc.Equals, "extra")
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[int]).Value(), tc.Equals, 7)
+}
+
+func (s *LoggerSuite) TestMultipleAttrsIgnoredForMessageFormatting(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// Multiple attrs should all be separated from the message.
+	_ = logger.Logf(c.Context(), loggo.INFO, "msg %s", "formatted",
+		attrs.String("s", "val"),
+		attrs.Int("i", 1),
+		attrs.Bool("b", true),
+	)
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "msg formatted")
+	c.Assert(logs[0].Attrs, tc.HasLen, 3)
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[string]).Key(), tc.Equals, "s")
+	c.Check(logs[0].Attrs[1].(attrs.AttrValue[int]).Key(), tc.Equals, "i")
+	c.Check(logs[0].Attrs[2].(attrs.AttrValue[bool]).Key(), tc.Equals, "b")
+}
+
+func (s *LoggerSuite) TestAttrsOnlyNoFormatArgs(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// When only attrs are passed with no format verbs, message stays as-is.
+	_ = logger.Logf(c.Context(), loggo.INFO, "plain message",
+		attrs.Float64("latency", 1.23),
+		attrs.Duration("elapsed", 5*time.Second),
+	)
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "plain message")
+	c.Assert(logs[0].Attrs, tc.HasLen, 2)
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[float64]).Key(), tc.Equals, "latency")
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[float64]).Value(), tc.Equals, 1.23)
+	c.Check(logs[0].Attrs[1].(attrs.AttrValue[time.Duration]).Key(), tc.Equals, "elapsed")
+	c.Check(logs[0].Attrs[1].(attrs.AttrValue[time.Duration]).Value(), tc.Equals, 5*time.Second)
+}
+
+func (s *LoggerSuite) TestNoAttrsFormatsNormally(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// Without attrs, formatting works as usual.
+	_ = logger.Logf(c.Context(), loggo.INFO, "hello %s %d", "world", 42)
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "hello world 42")
+	c.Check(logs[0].Attrs, tc.HasLen, 0)
+}
+
+func (s *LoggerSuite) TestAttrsInterleavedWithFormatArgs(c *tc.C) {
+	writer := &loggo.TestWriter{}
+	context := loggo.NewContext(loggo.INFO)
+	err := context.AddWriter("test", writer)
+	c.Assert(err, tc.IsNil)
+
+	logger := context.GetLogger("testing")
+
+	// Attrs interleaved with format args: attrs are separated out,
+	// format args are used in order.
+	_ = logger.Logf(c.Context(), loggo.INFO, "%s=%d",
+		attrs.String("before", "x"),
+		"key",
+		attrs.Int("middle", 5),
+		100,
+		attrs.Bool("after", false),
+	)
+
+	logs := writer.Log()
+	c.Assert(logs, tc.HasLen, 1)
+	c.Check(logs[0].Message, tc.Equals, "key=100")
+	c.Assert(logs[0].Attrs, tc.HasLen, 3)
+	c.Check(logs[0].Attrs[0].(attrs.AttrValue[string]).Key(), tc.Equals, "before")
+	c.Check(logs[0].Attrs[1].(attrs.AttrValue[int]).Key(), tc.Equals, "middle")
+	c.Check(logs[0].Attrs[2].(attrs.AttrValue[bool]).Key(), tc.Equals, "after")
 }

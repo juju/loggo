@@ -46,6 +46,7 @@ func main() {
 	fmt.Println("")
 
 	_ = rootLogger.Infof(context.Background(), "Start of test.", attrs.String("foo", "bar"))
+	_ = rootLogger.Debugf(context.Background(), `This should print "a b": "%s %s".`, "a", attrs.String("alpha", "omega"), "b")
 
 	FirstCritical("first critical")
 	FirstError("first error")
