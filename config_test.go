@@ -3,13 +3,19 @@
 
 package loggo
 
-import gc "gopkg.in/check.v1"
+import (
+	"testing"
+
+	"github.com/juju/tc"
+)
 
 type ConfigSuite struct{}
 
-var _ = gc.Suite(&ConfigSuite{})
+func TestConfigSuite(t *testing.T) {
+	tc.Run(t, &ConfigSuite{})
+}
 
-func (*ConfigSuite) TestParseConfigValue(c *gc.C) {
+func (*ConfigSuite) TestParseConfigValue(c *tc.C) {
 	for i, test := range []struct {
 		value  string
 		module string
@@ -52,18 +58,18 @@ func (*ConfigSuite) TestParseConfigValue(c *gc.C) {
 		c.Logf("%d: %s", i, test.value)
 		module, level, err := parseConfigValue(test.value)
 		if test.err == "" {
-			c.Check(err, gc.IsNil)
-			c.Check(module, gc.Equals, test.module)
-			c.Check(level, gc.Equals, test.level)
+			c.Check(err, tc.IsNil)
+			c.Check(module, tc.Equals, test.module)
+			c.Check(level, tc.Equals, test.level)
 		} else {
-			c.Check(module, gc.Equals, "")
-			c.Check(level, gc.Equals, UNSPECIFIED)
-			c.Check(err.Error(), gc.Equals, test.err)
+			c.Check(module, tc.Equals, "")
+			c.Check(level, tc.Equals, UNSPECIFIED)
+			c.Check(err.Error(), tc.Equals, test.err)
 		}
 	}
 }
 
-func (*ConfigSuite) TestPaarseConfigurationString(c *gc.C) {
+func (*ConfigSuite) TestParseConfigurationString(c *tc.C) {
 	for i, test := range []struct {
 		configuration string
 		expected      Config
@@ -123,16 +129,16 @@ func (*ConfigSuite) TestPaarseConfigurationString(c *gc.C) {
 		c.Logf("%d: %q", i, test.configuration)
 		config, err := ParseConfigString(test.configuration)
 		if test.err == "" {
-			c.Check(err, gc.IsNil)
-			c.Check(config, gc.DeepEquals, test.expected)
+			c.Check(err, tc.IsNil)
+			c.Check(config, tc.DeepEquals, test.expected)
 		} else {
-			c.Check(config, gc.IsNil)
-			c.Check(err.Error(), gc.Equals, test.err)
+			c.Check(config, tc.IsNil)
+			c.Check(err.Error(), tc.Equals, test.err)
 		}
 	}
 }
 
-func (*ConfigSuite) TestConfigString(c *gc.C) {
+func (*ConfigSuite) TestConfigString(c *tc.C) {
 	for i, test := range []struct {
 		config   Config
 		expected string
@@ -161,6 +167,6 @@ func (*ConfigSuite) TestConfigString(c *gc.C) {
 		expected: "<root>=WARNING;module=INFO;other.module=WARNING;sub.module=DEBUG",
 	}} {
 		c.Logf("%d: %q", i, test.expected)
-		c.Check(test.config.String(), gc.Equals, test.expected)
+		c.Check(test.config.String(), tc.Equals, test.expected)
 	}
 }

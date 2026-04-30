@@ -5,16 +5,20 @@ package loggo
 
 import (
 	"bytes"
+	"context"
+	"testing"
 	"time"
 
-	gc "gopkg.in/check.v1"
+	"github.com/juju/tc"
 )
 
 type SimpleWriterSuite struct{}
 
-var _ = gc.Suite(&SimpleWriterSuite{})
+func TestSimpleWriterSuite(t *testing.T) {
+	tc.Run(t, &SimpleWriterSuite{})
+}
 
-func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
+func (s *SimpleWriterSuite) TestNewSimpleWriter(c *tc.C) {
 	now := time.Now()
 	formatter := func(entry Entry) string {
 		return "<< " + entry.Message + " >>"
@@ -22,7 +26,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(Entry{
+	_ = writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",
@@ -32,10 +36,10 @@ func (s *SimpleWriterSuite) TestNewSimpleWriter(c *gc.C) {
 		Labels:    nil,
 	})
 
-	c.Check(buf.String(), gc.Equals, "<< a message >>\n")
+	c.Check(buf.String(), tc.Equals, "<< a message >>\n")
 }
 
-func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *gc.C) {
+func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *tc.C) {
 	now := time.Now()
 	formatter := func(entry Entry) string {
 		return "<< " + entry.Message + " >>"
@@ -43,7 +47,7 @@ func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *gc.C) {
 	buf := &bytes.Buffer{}
 
 	writer := NewSimpleWriter(buf, formatter)
-	writer.Write(Entry{
+	_ = writer.Write(context.Background(), Entry{
 		Level:     INFO,
 		Module:    "test",
 		Filename:  "somefile.go",
@@ -53,5 +57,5 @@ func (s *SimpleWriterSuite) TestNewSimpleWriterWithLabels(c *gc.C) {
 		Labels:    Labels{LoggerTags: "ONE,TWO"},
 	})
 
-	c.Check(buf.String(), gc.Equals, "<< a message >>\n")
+	c.Check(buf.String(), tc.Equals, "<< a message >>\n")
 }

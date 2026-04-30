@@ -4,6 +4,7 @@
 package loggo
 
 import (
+	"context"
 	"path"
 	"sync"
 )
@@ -16,11 +17,12 @@ type TestWriter struct {
 }
 
 // Write saves the params as members in the TestLogValues struct appended to the Log array.
-func (writer *TestWriter) Write(entry Entry) {
+func (writer *TestWriter) Write(_ context.Context, entry Entry) error {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
 	entry.Filename = path.Base(entry.Filename)
 	writer.log = append(writer.log, entry)
+	return nil
 }
 
 // Clear removes any saved log messages.

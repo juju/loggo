@@ -4,11 +4,11 @@
 package loggo_test
 
 import (
+	"testing"
 	"time"
 
-	gc "gopkg.in/check.v1"
-
-	"github.com/juju/loggo/v2"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/tc"
 )
 
 type LoggingSuite struct {
@@ -20,22 +20,24 @@ type LoggingSuite struct {
 	Labels map[string]string
 }
 
-var _ = gc.Suite(&LoggingSuite{})
-var _ = gc.Suite(&LoggingSuite{Labels: loggo.Labels{"logger-tags": "ONE,TWO"}})
+func TestLoggingSuite(t *testing.T) {
+	tc.Run(t, &LoggingSuite{})
+	tc.Run(t, &LoggingSuite{Labels: loggo.Labels{"logger-tags": "ONE,TWO"}})
+}
 
-func (s *LoggingSuite) SetUpTest(c *gc.C) {
+func (s *LoggingSuite) SetUpTest(c *tc.C) {
 	s.writer = &writer{}
 	s.context = loggo.NewContext(loggo.TRACE)
 	err := s.context.AddWriter("test", s.writer)
-	c.Assert(err, gc.IsNil)
+	c.Assert(err, tc.IsNil)
 	s.logger = s.context.GetLogger("test", "ONE,TWO")
 }
 
-func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
-	s.logger.Infof("simple")
-	s.logger.Infof("with args %d", 42)
-	s.logger.Infof("working 100%")
-	s.logger.Infof("missing %s")
+func (s *LoggingSuite) TestLoggingStrings(c *tc.C) {
+	_ = s.logger.Infof(c.Context(), "simple")
+	_ = s.logger.Infof(c.Context(), "with args %d", 42)
+	_ = s.logger.Infof(c.Context(), "working 100%")
+	_ = s.logger.Infof(c.Context(), "missing %s")
 
 	checkLogEntries(c, s.writer.Log(), []loggo.Entry{
 		{Level: loggo.INFO, Module: "test", Message: "simple", Labels: s.Labels},
@@ -45,7 +47,7 @@ func (s *LoggingSuite) TestLoggingStrings(c *gc.C) {
 	})
 }
 
-func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
+func (s *LoggingSuite) TestLoggingLimitWarning(c *tc.C) {
 	s.logger.SetLogLevel(loggo.WARNING)
 	start := time.Now()
 	logAllSeverities(s.logger)
@@ -62,17 +64,17 @@ func (s *LoggingSuite) TestLoggingLimitWarning(c *gc.C) {
 	}
 }
 
-func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
-	s.helperInfof(c, "helper message")                             //tag helper-location
-	s.logger.Criticalf("critical message")                         //tag critical-location
-	s.logger.Errorf("error message")                               //tag error-location
-	s.logger.Warningf("warning message")                           //tag warning-location
-	s.logger.Infof("info message")                                 //tag info-location
-	s.logger.Debugf("debug message")                               //tag debug-location
-	s.logger.Tracef("trace message")                               //tag trace-location
-	s.logger.Logf(loggo.INFO, "logf msg")                          //tag logf-location
-	s.logger.LogCallf(1, loggo.INFO, "logcallf msg")               //tag logcallf-location
-	s.logger.LogWithLabelsf(loggo.INFO, "logwithlabelsf msg", nil) //tag logwithlabelsf-location
+func (s *LoggingSuite) TestLocationCapture(c *tc.C) {
+	s.helperInfof(c, "helper message")                                              //tag helper-location
+	_ = s.logger.Criticalf(c.Context(), "critical message")                         //tag critical-location
+	_ = s.logger.Errorf(c.Context(), "error message")                               //tag error-location
+	_ = s.logger.Warningf(c.Context(), "warning message")                           //tag warning-location
+	_ = s.logger.Infof(c.Context(), "info message")                                 //tag info-location
+	_ = s.logger.Debugf(c.Context(), "debug message")                               //tag debug-location
+	_ = s.logger.Tracef(c.Context(), "trace message")                               //tag trace-location
+	_ = s.logger.Logf(c.Context(), loggo.INFO, "logf msg")                          //tag logf-location
+	_ = s.logger.LogCallf(c.Context(), 1, loggo.INFO, "logcallf msg")               //tag logcallf-location
+	_ = s.logger.LogWithLabelsf(c.Context(), loggo.INFO, "logwithlabelsf msg", nil) //tag logwithlabelsf-location
 
 	log := s.writer.Log()
 	tags := []string{
@@ -87,24 +89,24 @@ func (s *LoggingSuite) TestLocationCapture(c *gc.C) {
 		"logcallf-location",
 		"logwithlabelsf-location",
 	}
-	c.Assert(log, gc.HasLen, len(tags))
+	c.Assert(log, tc.HasLen, len(tags))
 	for x := range tags {
 		assertLocation(c, log[x], tags[x])
 	}
 }
 
-func (s *LoggingSuite) helperInfof(c *gc.C, format string, args ...any) {
+func (s *LoggingSuite) helperInfof(c *tc.C, format string, args ...any) {
 	s.logger.Helper()
-	s.logger.Infof(format, args...)
+	_ = s.logger.Infof(c.Context(), format, args...)
 }
 
-func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *gc.C) {
-	s.logger.Logf(loggo.UNSPECIFIED, "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+func (s *LoggingSuite) TestLogDoesntLogWeirdLevels(c *tc.C) {
+	_ = s.logger.Logf(c.Context(), loggo.UNSPECIFIED, "message")
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
-	s.logger.Logf(loggo.Level(42), "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+	_ = s.logger.Logf(c.Context(), loggo.Level(42), "message")
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 
-	s.logger.Logf(loggo.CRITICAL+loggo.Level(1), "message")
-	c.Assert(s.writer.Log(), gc.HasLen, 0)
+	_ = s.logger.Logf(c.Context(), loggo.CRITICAL+loggo.Level(1), "message")
+	c.Assert(s.writer.Log(), tc.HasLen, 0)
 }

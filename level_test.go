@@ -4,14 +4,17 @@
 package loggo_test
 
 import (
-	gc "gopkg.in/check.v1"
+	"testing"
 
-	"github.com/juju/loggo/v2"
+	"github.com/juju/loggo/v3"
+	"github.com/juju/tc"
 )
 
 type LevelSuite struct{}
 
-var _ = gc.Suite(&LevelSuite{})
+func TestLevelSuite(t *testing.T) {
+	tc.Run(t, &LevelSuite{})
+}
 
 var parseLevelTests = []struct {
 	str   string
@@ -70,11 +73,11 @@ var parseLevelTests = []struct {
 	fail: true,
 }}
 
-func (s *LevelSuite) TestParseLevel(c *gc.C) {
+func (s *LevelSuite) TestParseLevel(c *tc.C) {
 	for _, test := range parseLevelTests {
 		level, ok := loggo.ParseLevel(test.str)
-		c.Assert(level, gc.Equals, test.level)
-		c.Assert(ok, gc.Equals, !test.fail)
+		c.Assert(level, tc.Equals, test.level)
+		c.Assert(ok, tc.Equals, !test.fail)
 	}
 }
 
@@ -89,8 +92,8 @@ var levelStringValueTests = map[loggo.Level]string{
 	loggo.Level(42):   "<unknown>", // other values are unknown
 }
 
-func (s *LevelSuite) TestLevelStringValue(c *gc.C) {
+func (s *LevelSuite) TestLevelStringValue(c *tc.C) {
 	for level, str := range levelStringValueTests {
-		c.Assert(level.String(), gc.Equals, str)
+		c.Assert(level.String(), tc.Equals, str)
 	}
 }
